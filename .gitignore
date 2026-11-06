@@ -1,0 +1,5 @@
+# Lecture notes are the school's material - keep them out of this public repo
+source/
+*.pdf
+output/
+notes/
