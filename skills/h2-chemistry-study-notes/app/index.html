@@ -1,0 +1,504 @@
+<title>H2 Chemistry Drill</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,600;8..60,700&family=Atkinson+Hyperlegible:wght@400;700&family=IBM+Plex+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: a lab notebook. Squared answer page in the centre, red pen for marking, copper-sulfate blue for the student's own writing. */
+:root{
+  --paper:#f3f6f6; --sheet:#ffffff; --grid:#e3eaec; --rule:#d5dee1; --ink:#14222b; --muted:#566872;
+  --blue:#1c5aa6; --blue-soft:#e4edf8; --red:#c3262f; --red-soft:#fbe8e9;
+  --ok:#1d7a4f; --ok-soft:#e1f2e9; --warn:#946200; --warn-soft:#fbefd6; --gap:#7a5a00; --gap-soft:#fff6dc;
+  --display:"Source Serif 4",Georgia,"Times New Roman",serif;
+  --body:"Atkinson Hyperlegible",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+  --r:6px;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --paper:#0f1519; --sheet:#161e24; --grid:#1f2a31; --rule:#2a3740; --ink:#e3ebef; --muted:#93a5af;
+  --blue:#86b4ff; --blue-soft:#18294a; --red:#ff7b82; --red-soft:#3a1d22;
+  --ok:#6fd3a0; --ok-soft:#14321f; --warn:#f0c065; --warn-soft:#3a2e14; --gap:#f3cf6d; --gap-soft:#2f2913; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --paper:#0f1519; --sheet:#161e24; --grid:#1f2a31; --rule:#2a3740; --ink:#e3ebef; --muted:#93a5af;
+  --blue:#86b4ff; --blue-soft:#18294a; --red:#ff7b82; --red-soft:#3a1d22;
+  --ok:#6fd3a0; --ok-soft:#14321f; --warn:#f0c065; --warn-soft:#3a2e14; --gap:#f3cf6d; --gap-soft:#2f2913; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);font:15px/1.55 var(--body);
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 48px}
+.wrap{max-width:1080px;margin:0 auto;display:grid;gap:20px}
+h1,h2,h3{font-family:var(--display);text-wrap:balance;margin:0}
+button,input,textarea,select{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+.eyebrow{font:600 11px/1.3 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+sub,sup{font-size:.72em;line-height:0}
+
+header.top{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px 24px;border-bottom:1px solid var(--rule);padding-bottom:14px}
+header.top h1{font-size:clamp(26px,4vw,34px);font-weight:700;letter-spacing:-.01em}
+header.top p{margin:4px 0 0;color:var(--muted);max-width:62ch}
+.sync{font:12px var(--mono);color:var(--muted)}
+nav.tabs{display:flex;gap:4px;background:var(--sheet);border:1px solid var(--rule);border-radius:999px;padding:3px}
+nav.tabs button{border:0;background:none;padding:6px 14px;border-radius:999px;cursor:pointer;color:var(--muted);font-weight:700}
+nav.tabs button[aria-selected="true"]{background:var(--blue);color:var(--sheet)}
+
+.grid{display:grid;grid-template-columns:310px minmax(0,1fr);gap:20px;align-items:start}
+@media (max-width:860px){.grid{grid-template-columns:minmax(0,1fr)}}
+.panel{background:var(--sheet);border:1px solid var(--rule);border-radius:var(--r);padding:16px;display:grid;gap:14px;min-width:0}
+.panel h2{font-size:18px}
+.seg{display:grid;grid-template-columns:repeat(3,1fr);gap:4px}
+.seg button{border:1px solid var(--rule);background:var(--paper);border-radius:var(--r);padding:8px 4px;cursor:pointer;font-size:13px;line-height:1.25}
+.seg button[aria-pressed="true"]{border-color:var(--blue);background:var(--blue-soft);color:var(--blue);font-weight:700}
+.seg small{display:block;font-weight:400;color:var(--muted);font-size:11px}
+.strand{display:grid;gap:6px}
+.strand .ph{display:flex;justify-content:space-between;align-items:center}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{border:1px solid var(--rule);background:var(--paper);border-radius:999px;padding:4px 10px;font-size:12.5px;cursor:pointer;display:inline-flex;gap:6px;align-items:center}
+.chip[aria-pressed="true"]{border-color:var(--blue);background:var(--blue-soft);color:var(--blue)}
+.chip .n{font:11px var(--mono);color:var(--muted)}
+.linkbtn{border:0;background:none;color:var(--blue);cursor:pointer;font-size:12px;padding:0}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+label.inl{display:flex;gap:8px;align-items:center;font-size:13px;color:var(--muted)}
+select{background:var(--paper);border:1px solid var(--rule);border-radius:var(--r);padding:5px 8px}
+.btn{border:1px solid var(--blue);background:var(--blue);color:var(--sheet);border-radius:var(--r);padding:9px 16px;font-weight:700;cursor:pointer}
+.btn.ghost{background:transparent;color:var(--blue)}
+.btn.red{background:var(--red);border-color:var(--red)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.queue{font:12.5px var(--mono);color:var(--muted)}
+
+/* The notebook page */
+.sheet{background:var(--sheet);border:1px solid var(--rule);border-radius:var(--r);position:relative;min-width:0;overflow:hidden}
+.sheet::before{content:"";position:absolute;top:0;bottom:0;left:44px;width:1px;background:var(--red);opacity:.45}
+.sheet-in{padding:18px 18px 20px 62px;display:grid;gap:14px}
+@media (max-width:520px){.sheet::before{left:22px}.sheet-in{padding-left:34px}}
+.meta{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center}
+.box{font:600 11px var(--mono);padding:2px 7px;border-radius:999px;background:var(--blue-soft);color:var(--blue)}
+.crumbs{font-size:13px;color:var(--muted)}
+.qtitle{font-size:clamp(21px,3vw,27px);font-weight:700;line-height:1.2}
+.qtext{font-size:16px;max-width:65ch}
+.clue{font-family:var(--display);font-size:19px;line-height:1.45;max-width:62ch}
+.mask{display:inline-block;min-width:3.2em;border-bottom:2px solid var(--muted);color:transparent;user-select:none}
+textarea,input[type=text]{width:100%;border:1px solid var(--rule);border-radius:var(--r);padding:10px 12px;color:var(--blue);font:15px/24px var(--body);
+  background-color:transparent;background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);background-size:24px 24px;background-position:-1px 9px}
+textarea{min-height:196px;resize:vertical}
+input[type=text]{background-image:none;line-height:1.4}
+.hint{font-size:12.5px;color:var(--muted)}
+.marks{display:grid;gap:8px;list-style:none;margin:0;padding:0}
+.mark{display:grid;grid-template-columns:34px minmax(0,1fr);gap:10px;align-items:start;border:1px solid var(--rule);border-radius:var(--r);padding:9px 10px;cursor:pointer;background:var(--paper)}
+.mark .tick{width:28px;height:28px;border-radius:50%;border:1.5px solid var(--rule);display:grid;place-items:center;font:700 16px var(--display);color:transparent}
+.mark[aria-checked="true"]{border-color:var(--red);background:var(--red-soft)}
+.mark[aria-checked="true"] .tick{border-color:var(--red);color:var(--red)}
+.mark .auto{font:10.5px var(--mono);color:var(--muted);margin-left:6px}
+.src{font:10.5px var(--mono);color:var(--muted);white-space:nowrap;margin-left:6px}
+.scoreline{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;border-top:1px dashed var(--rule);padding-top:12px}
+.score{font:700 30px var(--display);color:var(--red);font-variant-numeric:tabular-nums}
+.verdict{font-size:13px;color:var(--muted)}
+.your{border-left:3px solid var(--blue);padding:6px 12px;color:var(--blue);white-space:pre-wrap;font-size:14px;max-height:220px;overflow:auto;background:var(--blue-soft);border-radius:0 var(--r) var(--r) 0}
+.done{text-align:center;padding:40px 20px;display:grid;gap:10px;justify-items:center}
+.done .big{font:700 48px var(--display);color:var(--red)}
+.note{border-radius:var(--r);padding:7px 11px;font-size:13px}
+.note.gap{border:1px solid var(--gap);background:var(--gap-soft)}
+.note.blank{border:1px dashed var(--muted);background:var(--paper)}
+.note b{font-weight:700}
+.reveal-title{font:700 22px var(--display)}
+.kbd{font:11px var(--mono);border:1px solid var(--rule);border-radius:4px;padding:0 5px;color:var(--muted)}
+.rate{display:flex;gap:8px;flex-wrap:wrap}
+
+/* Progress */
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+@media (max-width:620px){.stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.stat{background:var(--sheet);border:1px solid var(--rule);border-radius:var(--r);padding:12px 14px}
+.stat b{display:block;font:700 26px var(--display);font-variant-numeric:tabular-nums}
+.stat span{font-size:12.5px;color:var(--muted)}
+table.prog{width:100%;border-collapse:collapse;font-size:13.5px}
+table.prog th,table.prog td{text-align:left;padding:8px 6px;border-bottom:1px solid var(--rule);vertical-align:middle}
+table.prog th{font:600 11px var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+table.prog td.num{font:12.5px var(--mono);text-align:right;white-space:nowrap}
+.bar{display:flex;height:10px;border-radius:999px;overflow:hidden;background:var(--rule);min-width:120px}
+.bar i{display:block;height:100%}
+.legend{display:flex;gap:12px;flex-wrap:wrap;font-size:12px;color:var(--muted)}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px;vertical-align:-1px}
+.scroll{overflow-x:auto}
+
+/* Notes bank */
+.browse{display:grid;gap:10px}
+details.case{background:var(--sheet);border:1px solid var(--rule);border-radius:var(--r);padding:10px 14px}
+details.case summary{cursor:pointer;display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}
+details.case summary b{font-family:var(--display);font-size:16px}
+details.case ul{margin:8px 0 2px;padding-left:20px;display:grid;gap:4px}
+details.case .note{margin-top:8px}
+.search{max-width:360px}
+.more{justify-self:start}
+footer{color:var(--muted);font-size:12.5px;border-top:1px solid var(--rule);padding-top:12px;max-width:80ch}
+@media (prefers-reduced-motion:no-preference){.sheet-in>*{animation:rise .25s ease both}@keyframes rise{from{opacity:.4;transform:translateY(4px)}to{opacity:1;transform:none}}}
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div>
+      <div class="eyebrow">9476 H2 Chemistry · Year 6</div>
+      <h1>H2 Chemistry Drill</h1>
+      <p>Write down everything you remember about a section of your notes, then mark yourself against the notes. Sections you miss come back sooner.</p>
+    </div>
+    <div class="row">
+      <span class="sync" id="sync">Progress saved in this browser</span>
+      <nav class="tabs" role="tablist">
+        <button role="tab" id="tab-drill" aria-selected="true" data-view="drill">Drill</button>
+        <button role="tab" id="tab-progress" aria-selected="false" data-view="progress">Progress</button>
+        <button role="tab" id="tab-browse" aria-selected="false" data-view="browse">Notes bank</button>
+      </nav>
+    </div>
+  </header>
+
+  <section id="view-drill" class="grid">
+    <aside class="panel" aria-label="Round settings">
+      <div>
+        <div class="eyebrow">Mode</div>
+        <div class="seg" id="modes" style="margin-top:6px">
+          <button data-mode="recall" aria-pressed="true">Recall<small>section → points</small></button>
+          <button data-mode="identify" aria-pressed="false">Name it<small>point → section</small></button>
+          <button data-mode="check" aria-pressed="false">Checklist<small>“Can you…?”</small></button>
+        </div>
+      </div>
+      <div id="topicsets" style="display:grid;gap:12px"></div>
+      <div class="row">
+        <label class="inl" for="roundsize">Cards per round
+          <select id="roundsize"><option>5</option><option selected>10</option><option>15</option><option>20</option></select>
+        </label>
+      </div>
+      <div class="queue" id="queueinfo"></div>
+      <button class="btn" id="start">Start round</button>
+    </aside>
+    <main class="sheet" id="sheet" aria-live="polite"><div class="sheet-in" id="stage"></div></main>
+  </section>
+
+  <section id="view-progress" hidden>
+    <div class="wrap">
+      <div class="stats" id="stats"></div>
+      <div class="panel">
+        <div class="row" style="justify-content:space-between">
+          <h2>By topic</h2>
+          <div class="legend"><span><i style="background:var(--rule)"></i>New</span><span><i style="background:var(--red)"></i>Shaky (box 1–2)</span><span><i style="background:var(--warn)"></i>Learning (3–4)</span><span><i style="background:var(--ok)"></i>Secure (5)</span></div>
+        </div>
+        <div class="scroll"><table class="prog" id="progtable"></table></div>
+        <div class="row"><button class="btn ghost" id="resetask">Reset all progress</button><span id="resetconfirm" hidden><button class="btn red" id="resetyes">Yes, clear everything</button> <button class="linkbtn" id="resetno">Cancel</button></span></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="view-browse" hidden>
+    <div class="wrap">
+      <div class="row"><input type="text" id="search" class="search" placeholder="Search sections, reagents, values…" aria-label="Search the notes bank"><span class="hint" id="browsecount"></span></div>
+      <div class="browse" id="browse"></div>
+    </div>
+  </section>
+
+  <footer id="foot"></footer>
+</div>
+
+<script src="cards.js"></script>
+<script>
+(function(){
+const TOPICS = window.TOPICS || [], CASES = window.CASES || [];
+const TOPIC = Object.fromEntries(TOPICS.map(t=>[t.key,t]));
+const CASE = Object.fromEntries(CASES.map(c=>[c.id,c]));
+const CHECKS = TOPICS.flatMap(t=>t.checklist.map((q,i)=>({id:t.key+"-c"+i, t:t.key, q})));
+const CHECK = Object.fromEntries(CHECKS.map(c=>[c.id,c]));
+const STRANDS = ["Physical","Inorganic","Organic"];
+const DAY = 864e5, INTERVAL = [0,1,2,4,8,16], LS_KEY = "h2-chem-drill-v1";
+const $ = s => document.querySelector(s);
+const el = (tag, attrs={}, ...kids) => { const n=document.createElement(tag); for(const [k,v] of Object.entries(attrs)){ if(k==="class") n.className=v; else if(k==="text") n.textContent=v; else if(k.startsWith("on")) n.addEventListener(k.slice(2),v); else n.setAttribute(k,v);} for(const k of kids.flat()) if(k!=null) n.append(k.nodeType?k:document.createTextNode(k)); return n; };
+
+/* ---------- chemistry markup: _x / _{..} subscript, ^x / ^{..} superscript, **bold** ---------- */
+const MARK = /\*\*(.+?)\*\*|_\{([^}]*)\}|_([A-Za-z0-9+\-−–])|\^\{([^}]*)\}|\^([A-Za-z0-9+\-−–⦵‡])/g;
+function rich(s){ const f=document.createDocumentFragment(); let i=0, m; MARK.lastIndex=0;
+  while((m=MARK.exec(s))){ if(m.index>i) f.append(s.slice(i,m.index));
+    if(m[1]!=null) f.append(el("b",{text:m[1]})); else if(m[2]!=null||m[3]!=null) f.append(el("sub",{text:m[2]??m[3]})); else f.append(el("sup",{text:m[4]??m[5]}));
+    i=MARK.lastIndex; }
+  if(i<s.length) f.append(s.slice(i)); return f; }
+const plain = s => s.replace(MARK,(m,a,b,c,d,e)=>a??b??c??d??e);
+const short = t => t.name.replace(/^Lecture Notes\s*\S+\s*[–−-]\s*/,"");
+
+/* ---------- state ---------- */
+let state = { v:1, cards:{}, settings:{ mode:"recall", topics:TOPICS.map(t=>t.key), size:10 } };
+function lsLoad(){ try{ const s=JSON.parse(localStorage.getItem(LS_KEY)||"null"); if(s&&s.v===1) return s; }catch(e){} return null; }
+function lsSave(){ try{ localStorage.setItem(LS_KEY, JSON.stringify(state)); }catch(e){} }
+const fromLS = lsLoad(); if(fromLS) state = Object.assign(state, fromLS);
+state.settings.topics = state.settings.topics.filter(k=>TOPIC[k]);
+let dbDoc = null, saveTimer = null;
+function save(){ lsSave(); if(!dbDoc) return; clearTimeout(saveTimer); saveTimer=setTimeout(()=>{ dbDoc.set({ state: JSON.stringify(state), at: Date.now() }).catch(()=>{}); }, 800); }
+function merge(a,b){ const out=Object.assign({}, a.cards); for(const [k,v] of Object.entries(b.cards||{})) if(!out[k] || (v.last||0)>(out[k].last||0)) out[k]=v; return Object.assign({}, a, {cards:out}); }
+(async function connect(){
+  try{
+    if(!window.claude || !window.claude.use) return;
+    const [db, user] = await Promise.all([claude.use("db"), claude.use("user")]);
+    if(!db || !user) return;
+    const id = await user.id(); if(!id) return;
+    dbDoc = db.collection("data/users/"+id).doc("progress");
+    const snap = await dbDoc.get();
+    if(snap.exists){ try{ const remote=JSON.parse(snap.data().state); if(remote && remote.v===1){ state=merge(remote,state); state.settings=remote.settings||state.settings; state.settings.topics=state.settings.topics.filter(k=>TOPIC[k]); } }catch(e){} }
+    $("#sync").textContent = "Progress saved to your account";
+    lsSave(); renderSettings(); renderQueueInfo(); if(currentView==="progress") renderProgress();
+    if(!round) renderIdle();
+  }catch(e){ dbDoc = null; }
+})();
+
+/* ---------- scheduling (Leitner boxes) ---------- */
+const recOf = id => state.cards[id] || { b:0, due:0, n:0, last:0 };
+function itemsForMode(mode){
+  const on = new Set(state.settings.topics);
+  if(mode==="check") return CHECKS.filter(c=>on.has(c.t)).map(c=>"check:"+c.id);
+  return CASES.filter(c=>on.has(c.t)).map(c=>mode+":"+c.id);
+}
+function buildQueue(mode, size){
+  const now = Date.now(); const items = itemsForMode(mode).map(k=>({k, r:recOf(k)}));
+  const due = items.filter(x=>x.r.n>0 && x.r.due<=now).sort((a,b)=>a.r.b-b.r.b || a.r.due-b.r.due);
+  const fresh = shuffle(items.filter(x=>x.r.n===0));
+  const later = items.filter(x=>x.r.n>0 && x.r.due>now).sort((a,b)=>a.r.due-b.r.due);
+  return [...due, ...fresh, ...later].slice(0,size).map(x=>x.k);
+}
+function grade(key, frac){
+  const r = Object.assign({}, recOf(key));
+  if(frac>=0.8) r.b=Math.min(5,r.b+1); else if(frac>=0.5) r.b=Math.max(1,r.b); else r.b=1;
+  r.n++; r.last=Date.now(); r.score=Math.round(frac*100);
+  r.due = frac<0.5 ? Date.now() : Date.now()+INTERVAL[r.b]*DAY;
+  state.cards[key]=r; save(); return r;
+}
+function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+
+/* ---------- auto-matching: a starting suggestion, you have the final say ---------- */
+const STOP = new Set("the and for with that this from into were was are has had have its their than then them they which while about after before over under between by of to in on at as an a or be is it not but also only more most each per vs via can you what why how when does used use using form forms formed".split(" "));
+const norm = s => plain(s).toLowerCase().normalize("NFKD").replace(/[̀-ͯ]/g,"").replace(/[–—−]/g,"-");
+function tokens(s){ return norm(s).match(/[a-z]+|\d+(?:\.\d+)?/g)||[]; }
+function keyTerms(s){ return [...new Set(tokens(s).filter(w=>!STOP.has(w) && (w.length>=4 || /\d/.test(w) || /^[a-z]{1,3}\d/.test(w))))]; }
+function autoMatch(point, answer){
+  const ans=new Set(tokens(answer)), ansText=norm(answer); const terms=keyTerms(point); if(!terms.length) return false;
+  let hit=0, numHit=false;
+  for(const w of terms){ const ok=ans.has(w) || (w.length>=6 && ansText.includes(w.slice(0,6))); if(ok){ hit++; if(/\d/.test(w)) numHit=true; } }
+  return hit/terms.length>=0.34 || (numHit && hit>=2);
+}
+
+/* ---------- settings ---------- */
+function renderSettings(){
+  document.querySelectorAll("#modes button").forEach(b=>b.setAttribute("aria-pressed", String(b.dataset.mode===state.settings.mode)));
+  $("#roundsize").value = String(state.settings.size);
+  const box=$("#topicsets"); box.innerHTML=""; const on=new Set(state.settings.topics);
+  for(const g of STRANDS){
+    const ts = TOPICS.filter(t=>t.group===g); if(!ts.length) continue;
+    const allOn = ts.every(t=>on.has(t.key));
+    box.append(el("div",{class:"strand"},
+      el("div",{class:"ph"}, el("span",{class:"eyebrow",text:g+" chemistry"}),
+        el("button",{class:"linkbtn",text:allOn?"None":"All",onclick:()=>{ const s=new Set(state.settings.topics); ts.forEach(t=>allOn?s.delete(t.key):s.add(t.key)); state.settings.topics=[...s]; save(); renderSettings(); renderQueueInfo(); }})),
+      el("div",{class:"chips"}, ts.map(t=>{
+        const n = state.settings.mode==="check" ? t.checklist.length : CASES.filter(c=>c.t===t.key).length;
+        return el("button",{class:"chip","aria-pressed":String(on.has(t.key)),title:"From "+t.src,onclick:()=>{ const s=new Set(state.settings.topics); s.has(t.key)?s.delete(t.key):s.add(t.key); state.settings.topics=[...s]; save(); renderSettings(); renderQueueInfo(); }}, short(t), el("span",{class:"n",text:String(n)}));
+      }))));
+  }
+}
+function renderQueueInfo(){
+  const items=itemsForMode(state.settings.mode), now=Date.now();
+  const due=items.filter(k=>{const r=recOf(k); return r.n>0&&r.due<=now;}).length, fresh=items.filter(k=>recOf(k).n===0).length;
+  $("#queueinfo").textContent = items.length ? `${items.length} cards selected · ${due} due · ${fresh} not yet tried` : "Pick at least one topic.";
+  $("#start").disabled = !items.length;
+}
+$("#modes").addEventListener("click", e=>{ const b=e.target.closest("button"); if(!b) return; state.settings.mode=b.dataset.mode; save(); renderSettings(); renderQueueInfo(); if(!round) renderIdle(); });
+$("#roundsize").addEventListener("change", e=>{ state.settings.size=+e.target.value; save(); });
+$("#start").addEventListener("click", startRound);
+
+/* ---------- round ---------- */
+let round = null;
+function startRound(){
+  const q=buildQueue(state.settings.mode, state.settings.size); if(!q.length) return;
+  round={ queue:q, i:0, results:[], requeued:new Set() }; showCard();
+  if(window.matchMedia("(max-width:860px)").matches) $("#sheet").scrollIntoView({block:"start"});
+}
+function metaFor(t, key){ const r=recOf(key);
+  return el("div",{class:"meta"}, el("span",{class:"eyebrow",text:`${t.group} · ${short(t)}`}), el("span",{class:"box",text:r.n?`Box ${r.b}`:"New"}), el("span",{class:"queue",text:`${round.i+1} / ${round.queue.length}`})); }
+const crumbs = c => c.path.length ? el("div",{class:"crumbs"}, rich(c.path.join(" › "))) : null;
+function showCard(){
+  const stage=$("#stage"); stage.innerHTML="";
+  if(round.i>=round.queue.length) return showSummary();
+  const key=round.queue[round.i], i=key.indexOf(":"), mode=key.slice(0,i), id=key.slice(i+1);
+  if(mode==="recall") return recallCard(stage,key,CASE[id]);
+  if(mode==="identify") return identifyCard(stage,key,CASE[id]);
+  return checkCard(stage,key,CHECK[id]);
+}
+function next(key, frac){ grade(key,frac); round.results.push({key,frac});
+  if(frac<0.5 && !round.requeued.has(key)){ round.requeued.add(key); round.queue.push(key); }
+  round.i++; showCard(); }
+function notesFor(c){ return [
+  ...c.gaps.map(g=>el("div",{class:"note gap"}, el("b",{text:"⚠ Not reproduced from the source: "}), rich(g))),
+  ...c.blanks.map(b=>el("div",{class:"note blank"}, el("b",{text:"✎ Left blank in your lecture notes: "}), rich(b)))]; }
+
+function recallCard(stage, key, c){
+  const t=TOPIC[c.t];
+  const ta=el("textarea",{id:"answer",placeholder:"Write everything you can recall: definitions, equations, reagents and conditions, observations, values, explanations…","aria-label":"Your answer"});
+  const reveal=el("button",{class:"btn",text:"Mark my answer"}), skip=el("button",{class:"btn ghost",text:"I don't know it"});
+  stage.append(metaFor(t,key), crumbs(c), el("h2",{class:"qtitle"},rich(c.title)),
+    el("div",{class:"qtext",text:`Recall the ${c.pts.length} point${c.pts.length>1?"s":""} your notes make in this section.`}), ta,
+    el("div",{class:"row"}, reveal, skip, el("span",{class:"hint"}, el("span",{class:"kbd",text:"Ctrl"})," + ",el("span",{class:"kbd",text:"Enter"})," to mark")));
+  ta.focus({preventScroll:true});
+  const go=()=>markRecall(stage,key,c,ta.value); reveal.onclick=go; skip.onclick=()=>markRecall(stage,key,c,"");
+  ta.addEventListener("keydown",e=>{ if(e.key==="Enter"&&(e.ctrlKey||e.metaKey)) go(); });
+}
+function markRecall(stage, key, c, answer){
+  stage.innerHTML=""; const t=TOPIC[c.t];
+  const got=c.pts.map(p=>answer.trim()?autoMatch(p[0],answer):false);
+  const scoreEl=el("span",{class:"score"}), verdict=el("span",{class:"verdict"});
+  const list=el("ul",{class:"marks"}, c.pts.map((p,i)=>{
+    const li=el("li",{class:"mark",role:"checkbox",tabindex:"0","aria-checked":String(got[i])},
+      el("span",{class:"tick","aria-hidden":"true",text:"✓"}),
+      el("span",{}, rich(p[0]), got[i]?el("span",{class:"auto",text:"matched"}):null, p[1]?el("span",{class:"src",text:"[src "+p[1]+"]"}):null));
+    const toggle=()=>{ got[i]=!got[i]; li.setAttribute("aria-checked",String(got[i])); upd(); };
+    li.addEventListener("click",toggle); li.addEventListener("keydown",e=>{ if(e.key===" "||e.key==="Enter"){ e.preventDefault(); toggle(); }});
+    return li; }));
+  const upd=()=>{ const k=got.filter(Boolean).length, f=k/c.pts.length; scoreEl.textContent=`${k}/${c.pts.length}`; verdict.textContent=f>=0.8?"Secure: moves up a box":f>=0.5?"Partial: stays in its box, back tomorrow":"Missed: back to box 1, repeats this round"; };
+  upd();
+  const nextBtn=el("button",{class:"btn",text:"Save mark and continue",onclick:()=>next(key,got.filter(Boolean).length/c.pts.length)});
+  stage.append(metaFor(t,key), crumbs(c), el("h2",{class:"qtitle"},rich(c.title)),
+    answer.trim()?el("div",{class:"your",text:answer}):el("div",{class:"hint",text:"No answer written. Read the points below, then try it again next time."}),
+    el("div",{class:"hint",text:"Tick each point your answer covered. Auto-matched ticks are a guess from shared words; change them if they're wrong."}),
+    list, ...notesFor(c), el("div",{class:"scoreline"}, scoreEl, verdict, nextBtn));
+  nextBtn.focus({preventScroll:true});
+}
+
+function clueFor(c){ // one point from the section, with the section's own title words hidden
+  const titleWords=new Set(keyTerms(c.title).filter(w=>!/^\d+$/.test(w)&&w.length>=4));
+  const p=[...c.pts].sort((a,b)=>b[0].length-a[0].length)[0][0];
+  const f=document.createDocumentFragment();
+  for(const part of plain(p).split(/(\s+)/)){
+    const w=norm(part).replace(/[^a-z0-9-]/g,"");
+    if(w && [...titleWords].some(tw=>w===tw||(tw.length>=6&&w.startsWith(tw.slice(0,6))))) f.append(el("span",{class:"mask","aria-label":"hidden word",text:"····"}));
+    else f.append(part);
+  }
+  return f;
+}
+function identifyCard(stage, key, c){
+  const t=TOPIC[c.t];
+  const inp=el("input",{type:"text",id:"guess",placeholder:"Name the section of your notes","aria-label":"Your answer",autocomplete:"off"});
+  const check=el("button",{class:"btn",text:"Check"});
+  stage.append(metaFor(t,key), el("div",{class:"eyebrow",text:"Which section of your notes is this from?"}), el("p",{class:"clue"},clueFor(c)), inp,
+    el("div",{class:"row"}, check, el("button",{class:"btn ghost",text:"Show me",onclick:()=>checkIdentify(stage,key,c,"")})));
+  inp.focus({preventScroll:true});
+  check.onclick=()=>checkIdentify(stage,key,c,inp.value);
+  inp.addEventListener("keydown",e=>{ if(e.key==="Enter") checkIdentify(stage,key,c,inp.value); });
+}
+function checkIdentify(stage, key, c, guess){
+  const t=TOPIC[c.t]; const terms=keyTerms(c.title).filter(w=>!/^\d+$/.test(w));
+  const g=new Set(tokens(guess)), gt=norm(guess);
+  const hit=terms.filter(w=>g.has(w)||(w.length>=5&&gt.includes(w.slice(0,5)))).length;
+  const likely=guess.trim()&&terms.length&&hit/terms.length>=0.5;
+  stage.innerHTML="";
+  stage.append(metaFor(t,key), el("p",{class:"clue"},clueFor(c)), guess.trim()?el("div",{class:"your",text:guess}):null,
+    el("div",{}, el("div",{class:"eyebrow",text:"Answer"}), crumbs(c), el("div",{class:"reveal-title"},rich(c.title))),
+    el("div",{class:"hint",text:likely?"Looks like a match.":guess.trim()?"Doesn't look like a match. Mark it yourself if you described it differently.":""}),
+    el("div",{class:"scoreline"}, el("button",{class:"btn",text:"I got it",onclick:()=>next(key,1)}), el("button",{class:"btn ghost",text:"I missed it",onclick:()=>next(key,0)})),
+    el("details",{}, el("summary",{class:"hint",text:"Revise this section's points"}), el("ul",{}, c.pts.map(p=>el("li",{},rich(p[0]))))));
+}
+
+function related(q, topicKey){
+  const qt=keyTerms(q); if(!qt.length) return [];
+  return CASES.filter(c=>c.t===topicKey).map(c=>{ const ct=new Set(keyTerms(c.title)); return {c, s:qt.filter(w=>ct.has(w)).length}; })
+    .filter(x=>x.s>0).sort((a,b)=>b.s-a.s).slice(0,4).map(x=>x.c);
+}
+function checkCard(stage, key, k){
+  const t=TOPIC[k.t];
+  const ta=el("textarea",{id:"checkans",placeholder:"Answer the question from memory, as you would in an exam.","aria-label":"Your answer",style:"min-height:168px"});
+  stage.append(metaFor(t,key), el("div",{class:"eyebrow",text:"From the Quick-Revision Checklist"}), el("h2",{class:"qtitle"},rich(k.q)), ta,
+    el("div",{class:"row"}, el("button",{class:"btn",text:"Rate myself",onclick:()=>rateCheck(stage,key,k,ta.value)})));
+  ta.focus({preventScroll:true});
+}
+function rateCheck(stage, key, k, ans){
+  const t=TOPIC[k.t]; stage.innerHTML="";
+  const rel=related(k.q,k.t);
+  stage.append(metaFor(t,key), el("div",{class:"eyebrow",text:"From the Quick-Revision Checklist"}), el("h2",{class:"qtitle"},rich(k.q)),
+    ans.trim()?el("div",{class:"your",text:ans}):null,
+    el("div",{class:"hint",text:"Your notes ask this question but give no model answer, so mark yourself honestly. Check against the sections below if you're unsure."}),
+    rel.length?el("div",{}, el("div",{class:"eyebrow",text:"Sections that may help (matched by shared words)"}),
+      ...rel.map(c=>el("details",{class:"case",style:"margin-top:6px"}, el("summary",{}, el("b",{},rich(c.title))), el("ul",{}, c.pts.map(p=>el("li",{},rich(p[0]))))))):null,
+    el("div",{class:"scoreline"}, el("div",{class:"rate"},
+      el("button",{class:"btn",text:"Yes, confidently",onclick:()=>next(key,1)}),
+      el("button",{class:"btn ghost",text:"Partly",onclick:()=>next(key,0.6)}),
+      el("button",{class:"btn ghost",text:"Not yet",onclick:()=>next(key,0)}))));
+}
+
+function showSummary(){
+  const stage=$("#stage"); stage.innerHTML="";
+  const firsts=[], seen=new Set(); for(const r of round.results) if(!seen.has(r.key)){ seen.add(r.key); firsts.push(r); }
+  const avg=firsts.length?Math.round(100*firsts.reduce((s,r)=>s+r.frac,0)/firsts.length):0;
+  const weak=firsts.filter(r=>r.frac<0.5).map(r=>{ const i=r.key.indexOf(":"), m=r.key.slice(0,i), id=r.key.slice(i+1); return m==="check"?CHECK[id].q:CASE[id].title; });
+  stage.append(el("div",{class:"done"}, el("div",{class:"eyebrow",text:"Round complete"}), el("div",{class:"big",text:avg+"%"}),
+    el("div",{class:"hint",text:`Average first-attempt mark across ${firsts.length} cards.`}),
+    weak.length?el("div",{}, el("div",{class:"eyebrow",text:"Revise these first"}), el("ul",{style:"text-align:left"}, weak.map(w=>el("li",{},rich(w))))):el("div",{class:"hint",text:"Nothing below half marks this round."}),
+    el("div",{class:"row",style:"justify-content:center"}, el("button",{class:"btn",text:"Next round",onclick:startRound}), el("button",{class:"btn ghost",text:"See progress",onclick:()=>setView("progress")}))));
+  round=null; renderQueueInfo();
+}
+function renderIdle(){
+  const stage=$("#stage"); stage.innerHTML="";
+  const m=state.settings.mode;
+  const ex=CASES.find(c=>c.pts.length>=3 && c.path.length) || CASES[0];
+  const desc={ recall:"You get a section of your notes. Write what you remember, then tick off the points from the notes that you covered. Every point shows the lecture-text lines it came from.",
+    identify:"You get one point from your notes with the section's name words hidden. Say which section it comes from.",
+    check:"You get a “Can you…?” question from the end of a lecture. Answer it, then rate yourself. Your notes give no model answer for these." }[m];
+  if(!ex){ stage.append(el("p",{class:"qtext",text:"No cards loaded."})); return; }
+  const exCheck = CHECKS[0];
+  stage.append(el("div",{class:"eyebrow",text:"How a round works"}), el("p",{class:"qtext",text:desc}), el("div",{class:"eyebrow",text:"Example card"}),
+    m==="identify"?el("p",{class:"clue"},clueFor(ex)) : m==="check"&&exCheck?el("h2",{class:"qtitle"},rich(exCheck.q)) :
+    el("div",{}, crumbs(ex), el("h2",{class:"qtitle"},rich(ex.title)), el("div",{class:"qtext",text:`Recall the ${ex.pts.length} points your notes make in this section.`})),
+    el("div",{class:"hint",text:"Choose your topics and press Start round. Cards you score under half on come back again before the round ends."}));
+}
+
+/* ---------- progress ---------- */
+function renderProgress(){
+  const now=Date.now(), keys=CASES.map(c=>"recall:"+c.id);
+  const tried=keys.filter(k=>recOf(k).n>0), secure=keys.filter(k=>recOf(k).b>=5), due=keys.filter(k=>{const r=recOf(k); return r.n>0&&r.due<=now;});
+  const reviews=Object.values(state.cards).reduce((s,r)=>s+r.n,0);
+  $("#stats").innerHTML="";
+  [[tried.length+" / "+keys.length,"Sections attempted (Recall)"],[secure.length,"Secure (box 5)"],[due.length,"Due for review now"],[reviews,"Cards marked, all modes"]]
+    .forEach(([b,s])=>$("#stats").append(el("div",{class:"stat"}, el("b",{text:String(b)}), el("span",{text:s}))));
+  const tb=$("#progtable"); tb.innerHTML="";
+  tb.append(el("tr",{}, el("th",{text:"Topic"}), el("th",{text:"Recall boxes"}), el("th",{class:"num",text:"Avg last mark"}), el("th",{class:"num",text:"Due"}), el("th",{text:""})));
+  for(const t of TOPICS){
+    const rs=CASES.filter(c=>c.t===t.key).map(c=>recOf("recall:"+c.id)); if(!rs.length) continue;
+    const seg=[rs.filter(r=>r.n===0).length, rs.filter(r=>r.n>0&&r.b<=2).length, rs.filter(r=>r.b>=3&&r.b<=4).length, rs.filter(r=>r.b>=5).length];
+    const marked=rs.filter(r=>r.n>0), avg=marked.length?Math.round(marked.reduce((s,r)=>s+(r.score||0),0)/marked.length)+"%":"–";
+    const dueN=rs.filter(r=>r.n>0&&r.due<=now).length;
+    const bar=el("div",{class:"bar",title:`${seg[0]} new, ${seg[1]} shaky, ${seg[2]} learning, ${seg[3]} secure`},
+      ...[["var(--rule)",seg[0]],["var(--red)",seg[1]],["var(--warn)",seg[2]],["var(--ok)",seg[3]]].map(([c,n])=>el("i",{style:`width:${100*n/rs.length}%;background:${c}`})));
+    tb.append(el("tr",{}, el("td",{}, el("div",{text:short(t)}), el("div",{class:"hint",text:t.group+" · "+rs.length+" sections"})), el("td",{},bar), el("td",{class:"num",text:avg}), el("td",{class:"num",text:String(dueN)}),
+      el("td",{}, el("button",{class:"linkbtn",text:"Drill this",onclick:()=>{ state.settings.topics=[t.key]; state.settings.mode="recall"; save(); renderSettings(); renderQueueInfo(); setView("drill"); startRound(); }}))));
+  }
+}
+$("#resetask").onclick=()=>{ $("#resetconfirm").hidden=false; };
+$("#resetno").onclick=()=>{ $("#resetconfirm").hidden=true; };
+$("#resetyes").onclick=()=>{ state.cards={}; save(); $("#resetconfirm").hidden=true; renderProgress(); renderQueueInfo(); };
+
+/* ---------- notes bank ---------- */
+let browseLimit=60;
+function renderBrowse(){
+  const q=norm($("#search").value.trim()), box=$("#browse"); box.innerHTML="";
+  let n=0, shown=0;
+  for(const t of TOPICS){
+    const cs=CASES.filter(c=>c.t===t.key && (!q || norm([c.title,...c.path,...c.pts.map(p=>p[0])].join(" ")).includes(q)));
+    if(!cs.length) continue; n+=cs.length;
+    if(shown>=browseLimit) continue;
+    box.append(el("div",{class:"eyebrow",style:"margin-top:6px",text:`${t.group} · ${short(t)} — from ${t.src}`}));
+    for(const c of cs){ if(shown>=browseLimit) break; shown++; const r=recOf("recall:"+c.id);
+      box.append(el("details",{class:"case"}, el("summary",{}, el("b",{},rich(c.title)), c.path.length?el("span",{class:"hint"},rich(c.path.join(" › "))):null, el("span",{class:"box",text:r.n?`Box ${r.b}`:"New"})),
+        el("ul",{}, c.pts.map(p=>el("li",{}, rich(p[0]), p[1]?el("span",{class:"src",text:"[src "+p[1]+"]"}):null))), ...notesFor(c))); }
+  }
+  $("#browsecount").textContent=`${n} sections${shown<n?` · showing ${shown}`:""}`;
+  if(shown<n) box.append(el("button",{class:"btn ghost more",text:"Show more",onclick:()=>{ browseLimit+=60; renderBrowse(); }}));
+}
+$("#search").addEventListener("input",()=>{ browseLimit=60; renderBrowse(); });
+
+/* ---------- views ---------- */
+let currentView="drill";
+function setView(v){ currentView=v;
+  document.querySelectorAll("nav.tabs button").forEach(b=>b.setAttribute("aria-selected",String(b.dataset.view===v)));
+  for(const k of ["drill","progress","browse"]) $("#view-"+k).hidden=k!==v;
+  if(v==="progress") renderProgress(); if(v==="browse") renderBrowse(); }
+document.querySelectorAll("nav.tabs button").forEach(b=>b.addEventListener("click",()=>setView(b.dataset.view)));
+
+const nPts=CASES.reduce((s,c)=>s+c.pts.length,0);
+$("#foot").textContent=`${CASES.length} sections (${nPts} points) and ${CHECKS.length} checklist questions from ${TOPICS.length} sets of lecture notes. Every point passed an automatic check against the lecture text and shows the lines it came from. Drawings and garbled text are marked ⚠ instead of being reconstructed, and blanks in your notes are marked ✎ and left unanswered. Nothing outside the notes was added.`;
+renderSettings(); renderQueueInfo(); renderIdle();
+})();
+</script>
