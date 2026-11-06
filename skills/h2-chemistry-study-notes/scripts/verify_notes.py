@@ -57,6 +57,7 @@ reproduced reproduce refer reference check learning outcome outcomes syllabus co
 part parts step steps type types feature features factor factors main general specific case cases
 left final remaining working unanswered fill complete completed blank blanks quantity symbol symbols
 explanation explanations description condition conditions property properties notice notices
+entry entries deltah describing describe statement statements printed given give gives row rows column columns phrase phrases word words label labelled garbled extraction
 """.split())
 
 def norm(s):
@@ -64,6 +65,9 @@ def norm(s):
     s = s.replace("−", "-").replace("–", "-").replace("—", "-")
     s = s.replace("’", "'").replace("‘", "'").replace("“", '"').replace("”", '"')
     s = s.replace("**", "")
+    s = re.sub(r"[\u2206\u0394]\s*H+", " deltah ", s)   # ΔH_f / ∆Hneut / ∆𝐻𝐻o -> "deltah f", "deltah neut"
+    s = re.sub(r"_\{([A-Za-z]{2,})\}", r" \1 ", s)       # word subscripts (ΔH_{neut}) stay separate words
+    s = re.sub(r"\^o\b", " ", s)                           # standard-state "nought" superscript
     s = re.sub(r"[_^{}]", "", s)          # sub/superscript markup -> flattened (matches PDF text)
     s = s.replace("→", " ").replace("⇌", " ")
     return s.lower()
@@ -79,6 +83,29 @@ def stem(w):
         if len(w) > len(suf) + 3 and w.endswith(suf):
             return w[: -len(suf)]
     return w
+
+def split_tokens(s):
+    """Tokens with sub/superscript boundaries kept as separators (^{40}_{19}K -> 40 19 k)."""
+    s = unicodedata.normalize("NFKC", s).replace("**", "")
+    s = re.sub(r"[\u2206\u0394]\s*H+", " deltah ", s)
+    s = re.sub(r"\^o\b", " ", s)
+    s = re.sub(r"[_^{}]", " ", s).replace("\u2212", "-")
+    return re.findall(r"[a-z0-9]+(?:\.[0-9]+)?", s.lower())
+
+def resolved_by_parts(t, parts, scope):
+    """A joined token (e.g. '4019k' from ^{40}_{19}K) is accepted if it is the concatenation of
+    consecutive sub/superscript pieces that each occur in the cited source text. PDF extraction
+    often stacks or separates these pieces, so they rarely survive as one token."""
+    for i in range(len(parts)):
+        acc = ""
+        for j in range(i, len(parts)):
+            acc += parts[j]
+            if acc == t:
+                return all((not has_digit(x)) or x in scope.tokset or x in scope.squashed
+                           for x in parts[i:j+1])
+            if not t.startswith(acc):
+                break
+    return False
 
 def has_digit(t):
     return any(c.isdigit() for c in t)
@@ -211,8 +238,10 @@ def main():
 
         if kind != "heading":
             checked += 1
+            parts = split_tokens(text)
             nums = sorted({t for t in toks if has_digit(t)
-                           and t not in scope.tokset and t not in scope.squashed})
+                           and t not in scope.tokset and t not in scope.squashed
+                           and not resolved_by_parts(t, parts, scope)})
             if nums:
                 why.append(f"numbers/formulae not in cited source lines: {nums}"); status = "FAIL"
             cw = [w for w in content_words(toks) if w not in STRUCTURAL]

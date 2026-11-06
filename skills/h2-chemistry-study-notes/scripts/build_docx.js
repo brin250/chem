@@ -151,6 +151,7 @@ const title = [
   new Paragraph({ children: [new TextRun({ text: "How to read these notes", bold: true, size: 22 })], spacing: { after: 80 } }),
   bullet("Every line was machine-checked against the lecture notes text; [src L…] tags give the line range of the source text it came from.", 0),
   bullet("Amber ⚠ boxes mark diagrams, structures, graphs or garbled formulae that could not be reproduced faithfully from the text — look them up in the original PDF.", 0),
+  bullet("Numbers, equations and data are reproduced exactly as they appear in the lecture notes, even where they look unusual — they are never \"corrected\" from outside knowledge. Where the notes seem internally inconsistent, an ⚠ box says so.", 0),
   bullet("Grey ✎ boxes mark answers the lecture notes leave blank for you to fill in. They are deliberately NOT answered here.", 0),
   new Paragraph({ children: [new PageBreak()] }),
 ];
