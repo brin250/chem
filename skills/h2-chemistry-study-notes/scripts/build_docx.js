@@ -30,7 +30,7 @@ const PORTRAIT_W = 9026, LANDSCAPE_W = 13958;
 // ---------- inline markup: **bold**, _x / _{..} subscript, ^x / ^{..} superscript ----------
 function runs(s, base = {}) {
   const out = [];
-  const re = /\*\*(.+?)\*\*|_\{([^}]*)\}|_([A-Za-z0-9+\-−])|\^\{([^}]*)\}|\^([A-Za-z0-9+\-−])/g;
+  const re = /\*\*(.+?)\*\*|_\{([^}]*)\}|_([A-Za-z0-9+\-−–])|\^\{([^}]*)\}|\^([A-Za-z0-9+\-−–⦵‡])/g;
   let last = 0, m;
   while ((m = re.exec(s))) {
     if (m.index > last) out.push(new TextRun({ text: s.slice(last, m.index), ...base }));
