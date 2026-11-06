@@ -50,7 +50,7 @@ function citeRun(c) {
 }
 
 // ---------- block helpers (styles inherited from the approved H2 History template) ----------
-const H = { 1: HeadingLevel.HEADING_1, 2: HeadingLevel.HEADING_2, 3: HeadingLevel.HEADING_3 };
+const H = { 1: HeadingLevel.HEADING_1, 2: HeadingLevel.HEADING_2, 3: HeadingLevel.HEADING_3, 4: HeadingLevel.HEADING_4 };
 function heading(level, text, cite) {
   const children = runs(text);
   if (cite) children.push(citeRun(cite));
@@ -129,7 +129,7 @@ for (const raw of lines) {
   const indent = raw.match(/^ */)[0].length;
   const [txt, cite] = stripCite(st);
   let m;
-  if ((m = txt.match(/^(#{1,3}) (.*)$/))) push(heading(m[1].length, m[2], cite));
+  if ((m = txt.match(/^(#{1,4}) (.*)$/))) push(heading(m[1].length, m[2], cite));
   else if (txt.startsWith("|")) tableBuf.push(txt);
   else if (txt.startsWith("! ")) push(callout("⚠", "Not reproduced from source", txt.slice(2), "FFF4CE", "C99A00"));
   else if (txt.startsWith("? ")) push(callout("✎", "Left blank in lecture notes", txt.slice(2), "EDEDED", "7F7F7F"));
@@ -189,6 +189,8 @@ const doc = new Document({
         run: { size: 26, bold: true, color: "2E5395", font: "Calibri" }, paragraph: { spacing: { before: 240, after: 120 } } },
       { id: "Heading3", name: "Heading 3", basedOn: "Normal", next: "Normal", quickFormat: true,
         run: { size: 23, bold: true, italics: true, color: "44546A", font: "Calibri" }, paragraph: { spacing: { before: 200, after: 100 } } },
+      { id: "Heading4", name: "Heading 4", basedOn: "Normal", next: "Normal", quickFormat: true,
+        run: { size: 22, bold: true, color: "595959", font: "Calibri" }, paragraph: { spacing: { before: 160, after: 80 } } },
     ],
   },
   sections: sections.filter(s => s.children.length).map(s => ({

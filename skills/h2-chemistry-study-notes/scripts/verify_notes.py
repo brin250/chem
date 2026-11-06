@@ -57,7 +57,7 @@ reproduced reproduce refer reference check learning outcome outcomes syllabus co
 part parts step steps type types feature features factor factors main general specific case cases
 left final remaining working unanswered fill complete completed blank blanks quantity symbol symbols
 explanation explanations description condition conditions property properties notice notices
-entry entries value values conclusion conclusions numerical drawn drawing drawings include includes including deltah describing describe statement statements printed given give gives row rows column columns phrase phrases word words label labelled garbled extraction
+entry entries other others value values conclusion conclusions numerical drawn drawing drawings include includes including deltah describing describe statement statements printed given give gives row rows column columns phrase phrases word words label labelled garbled extraction
 """.split())
 
 def norm(s):
@@ -148,7 +148,7 @@ def classify(raw):
         return None, None
     if st.startswith("meta:"):
         return "meta", st[5:].strip()
-    if re.match(r"#{1,3} ", st):
+    if re.match(r"#{1,4} ", st):
         return "heading", st.lstrip("#").strip()
     if st.startswith("! "):
         return "gap", st[2:]

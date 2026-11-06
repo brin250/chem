@@ -58,7 +58,7 @@ the student can cross-reference. Default skeleton (adapt to what the topic actua
 1. **Title page** — generated from `meta:` lines.
 2. **0. Syllabus map & learning outcomes** — "Content" and "Learning Outcomes" copied verbatim from
    the lecture cover page; lecture outline.
-3. **Core content** — one `#` per lecture section, `##`/`###` for sub-sections, each with:
+3. **Core content** — one `#` per lecture section, `##`/`###`/`####` for sub-sections, each with:
    definitions (`>`), key equations (`=`), explanations/trends (`-`), comparison tables (`|`).
 4. **Worked examples** — question text, the data/working the notes give, and `?` for blanks.
 5. **Summary / comparison tables** — where the lecture has them (e.g. reagents & conditions,
@@ -72,7 +72,7 @@ the student can cross-reference. Default skeleton (adapt to what the topic actua
 meta: title = Lecture Notes 4 – The Gaseous State
 meta: subtitle = Comprehensive Study Notes
 meta: source = <source file / lecture name>
-# 1. Heading @L37-58        h1 (also ## h2, ### h3); @Lx-y = source lines; @L1-5,L90-99 allowed
+# 1. Heading @L37-58        h1 (also ## h2, ### h3, #### h4); @Lx-y = source lines; @L1-5,L90-99 allowed
 - bullet                     (indent two spaces for a sub-bullet)
 plain paragraph
 > verbatim definition / law / conclusion (shaded box)
