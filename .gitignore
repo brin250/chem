@@ -3,3 +3,5 @@ source/
 *.pdf
 output/
 notes/
+__pycache__/
+*.pyc
