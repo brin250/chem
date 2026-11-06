@@ -107,3 +107,17 @@ Heading 1 navy `1F3864` bold with bottom border; Heading 2 mid-blue `2E5395`; He
 `F2F2F2` rows; checklists use ☐; A4 portrait, landscape sections only for ≥5-column tables.
 Chemistry additions: centred Cambria Math equation lines, shaded definition boxes, amber ⚠ and
 grey ✎ callouts, grey `[src L…]` tags on headings.
+
+## Drill app (active recall)
+
+After every spec passes, build the study app's card bank and publish it:
+
+```bash
+python3 -I scripts/build_app_data.py notes/ output/app/cards.js
+cp app/index.html output/app/index.html
+```
+
+Publish `output/app/index.html` as an Artifact with `files: {"cards.js": "output/app/cards.js"}` and
+`capabilities: {db: {}, user: {}}` (per-viewer progress). The builder takes only lines the verifier
+marked PASS/WARN, keeps each point's source-line citation, shows ⚠ gaps and ✎ blanks as notes rather
+than answers, and refuses any spec whose verify report is missing, failing or out of date.
