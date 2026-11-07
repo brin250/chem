@@ -5,3 +5,6 @@ output/
 notes/
 __pycache__/
 *.pyc
+docs/cases.js
+docs/essays.js
+docs/data/

@@ -1,0 +1,73 @@
+# Builds an installable Android app (APK) from the web app in docs/ and publishes it
+# as the "android-latest" release: https://github.com/brin250/chem/releases/tag/android-latest
+name: Android app
+
+on:
+  push:
+    paths: ["docs/**", "android/**", ".github/workflows/android.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: android
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Create the Capacitor project
+        run: |
+          mkdir build && cd build
+          npm init -y >/dev/null
+          npm install @capacitor/core@6.2.0 @capacitor/cli@6.2.0 @capacitor/android@6.2.0
+          cp -r ../docs www
+          npx cap init "Chem Drill" io.github.brin250.chemdrill --web-dir www
+          npx cap add android
+
+      - name: App icon and version
+        working-directory: build/android/app
+        run: |
+          rm -rf src/main/res/mipmap-anydpi-v26
+          for d in src/main/res/mipmap-*; do
+            cp ../../../docs/icons/icon-512.png "$d/ic_launcher.png"
+            cp ../../../docs/icons/icon-512.png "$d/ic_launcher_round.png"
+            rm -f "$d/ic_launcher_foreground.png"
+          done
+          sed -i "s/versionCode 1$/versionCode ${{ github.run_number }}/" build.gradle
+          sed -i "s/versionName \"1.0\"/versionName \"1.${{ github.run_number }}\"/" build.gradle
+
+      - name: Build APK
+        working-directory: build/android
+        run: |
+          # Same signing key every build, so new versions install over the old one without losing data.
+          mkdir -p ~/.android && cp ../../android/sideload.keystore ~/.android/debug.keystore
+          ./gradlew assembleDebug --no-daemon
+          cp app/build/outputs/apk/debug/app-debug.apk ../../chem-drill.apk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: chem-drill.apk
+          path: chem-drill.apk
+
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete android-latest --yes --cleanup-tag || true
+          gh release create android-latest chem-drill.apk --target "${{ github.sha }}" --prerelease \
+            --title "Chem Drill for Android (latest)" \
+            --notes "Open this page on your Android phone, tap chem-drill.apk to download it, then open it and allow installing from this source. Built from commit ${{ github.sha }}."
