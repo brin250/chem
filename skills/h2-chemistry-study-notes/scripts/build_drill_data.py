@@ -2,9 +2,16 @@
 """Build the data files for the Chemistry Drill app (same card format as the
 H2 History Case Drill, v44) from verified .notes specs.
 
-usage: python3 -I build_drill_data.py <notes_dir> <docs_dir>
+usage: python3 -I build_drill_data.py <notes_dir> <docs_dir> [<maps_dir>]
 
 Writes <docs_dir>/cases.js, <docs_dir>/essays.js and <docs_dir>/data/*.js.
+<maps_dir> (default: ../maps next to this script) holds three hand-made files:
+  written.json      one short line per lecture and per section, written for the app.
+                    The app labels every one "Written for this app – not from your lecture notes".
+  notes_check.json  where the notes disagree with themselves; quotes are found by pattern
+                    in the card points and copied word for word (build fails if one is missing).
+  reaction_maps.json reaction flow charts; every arrow names a card and point, and the build
+                    fails unless both box names and every reagent occur in that card.
 
 Fidelity rules:
 - A spec is refused unless its verify report exists, is PASS, and was made from
@@ -12,8 +19,10 @@ Fidelity rules:
 - Only lines the verifier marked PASS or WARN become card points.
 - Gap (!) and blank (?) lines are attached to the card as notes, never as points.
   Gaps that record a disagreement inside the notes become "Check this" warnings.
-- Nothing is written that is not in the notes: card questions are a fixed template
-  ("What do your notes say about …?") and are labelled as written for the drill.
+- Card questions are either taken from the notes (worked examples, "Q: … A: …" lines,
+  labelled "Question from your notes") or a fixed template ("What do your notes say about …?").
+- The only other written text comes from written.json and map/stage titles, and the app
+  labels it as not from the lecture notes.
 """
 import hashlib, json, os, re, sys
 
@@ -86,7 +95,19 @@ def line_range(cites):
     return f"L{lo}–{hi}" if lo is not None else ""
 
 
-def build_topic(spec_path, rep_path):
+NOTES_Q = re.compile(r"^(Worked Example|Exercise|Try it yourself)", re.I)
+# The first point of a worked example is used as its question only if it reads as one
+# (a question mark or an instruction word) and carries no part of the answer.
+ASKS = re.compile(r"\?|\b(calculate|complete|write|draw|explain|describe|suggest|state|identify|predict|arrange|determine|deduce|"
+                  r"find|sketch|compare|estimate|construct|outline|show that)\b", re.I)
+ANSWERED = re.compile(r"reagents? (and|&) conditions?:|reagent and condition:|name of mechanism|ΔS [<>]|initial rate for|"
+                      r"\bK[cₚ] =|let the| · |⇒|∴|\bnote:", re.I)
+QA = re.compile(r"^Q\d*:\s*(.+?\?)\s*(?:A:\s*)?(\S.*)$")
+
+
+def build_topic(spec_path, rep_path, written=None):
+    written = written or {}
+    wsec = written.get("sections", {})
     rep = json.load(open(rep_path))
     if rep.get("status") != "PASS":
         raise SystemExit(f"refused: {rep_path} is not PASS")
@@ -174,10 +195,15 @@ def build_topic(spec_path, rep_path):
             cur["pts"].append(uni(text))
             cur["cites"].append((r.get("cite") or [cur["hcite"] or ""])[0] or "")
 
-    out, n = [], 0
+    out, n, nq = [], 0, 0
     for c in cards:
         if not c["pts"]:
             continue
+        noteq = None
+        p0 = c["pts"][0]
+        if NOTES_Q.search(c["title"]) and len(c["pts"]) >= 2 and ASKS.search(p0) and not ANSWERED.search(p0) and "[left blank]" not in p0:
+            noteq = c["pts"][0]
+            c["pts"], c["cites"] = c["pts"][1:], c["cites"][1:]
         chunks = list(range(0, len(c["pts"]), MAX_PTS))
         for j, s in enumerate(chunks):
             n += 1
@@ -188,6 +214,10 @@ def build_topic(spec_path, rep_path):
                     "title": ttl, "when": "", "mid": mid,
                     "q": "What do your notes say about " + uni(c["title"]) + (f" (under {mid})" if mid else "") + "?",
                     "pts": pts, "lines": line_range([x for x in cites if x]), "pcite": cites}
+            if noteq:
+                card["qs"], card["q"] = "notes", noteq
+            if uni(c["sec"]) in wsec:
+                card["exp"] = wsec[uni(c["sec"])]
             if j == 0:
                 warn = [g for g in c["gaps"] if DISAGREE.search(g) and not NOT_DISAGREE.search(g)]
                 other = [g for g in c["gaps"] if g not in warn]
@@ -200,14 +230,23 @@ def build_topic(spec_path, rep_path):
             if len(pts) >= 2:
                 card["clue"] = make_clue(c["title"], pts)
             out.append(card)
+        # A "Q: …? A: …" line in the notes becomes its own card, asked exactly as written.
+        for p, ci in zip(c["pts"], c["cites"]):
+            m = QA.match(p)
+            if m and "[left blank]" not in p:
+                nq += 1
+                out.append({"id": f"{key}-q{nq}", "t": key, "sec": uni(c["sec"]), "src": topic["src"], "qs": "notes",
+                            "title": uni(c["title"]) + " – question", "when": "", "mid": " › ".join(uni(x) for x in c["mid"]),
+                            "q": m.group(1), "pts": [m.group(2)], "lines": line_range([ci] if ci else []), "pcite": [ci],
+                            **({"exp": wsec[uni(c["sec"])]} if uni(c["sec"]) in wsec else {})})
 
     secs = []
     for c in out:
         if not secs or secs[-1]["name"] != c["sec"]:
-            secs.append({"name": c["sec"], "when": "", "what": "", "facts": [], "cards": []})
+            secs.append({"name": c["sec"], "when": "", "what": wsec.get(c["sec"], ""), "facts": [], "cards": []})
         secs[-1]["facts"].append(c["title"] + (f" — {c['mid']}" if c["mid"] else ""))
         secs[-1]["cards"].append(c["id"])
-    summary = {"question": " ".join(content), "themes": [{"h": "Learning outcomes", "pts": los}] if los else [],
+    summary = {"question": " ".join(content), "overview": [written["overview"]] if written.get("overview") else [], "themes": [{"h": "Learning outcomes", "pts": los}] if los else [],
                "cases": secs, "exam": checklist}
 
     essays = []
@@ -245,35 +284,129 @@ def js(name, obj):
     return f"window.{name}=" + json.dumps(obj, ensure_ascii=False, separators=(",", ":")) + ";\n"
 
 
+SUBN = str.maketrans("₀₁₂₃₄₅₆₇₈₉₊₋⁰¹²³⁴⁵⁶⁷⁸⁹⁺⁻", "0123456789+-0123456789+-")
+
+
+def nrm(s):
+    return re.sub(r"\s+", " ", s.translate(SUBN).lower().replace("−", "-").replace("–", "-")).strip()
+
+
+def find_point(cases, where, pat):
+    """First card point in a lecture (or one card, if `where` is a card id) matching `pat`; copied word for word."""
+    rx = re.compile(pat)
+    for c in cases:
+        if c["t"] == where or c["id"] == where:
+            if c["qs"] == "notes" and rx.search(c["q"]):
+                return c, -1
+            for i, p in enumerate(c["pts"]):
+                if rx.search(p):
+                    return c, i
+    raise SystemExit(f"notes_check.json: nothing in {where} matches {pat!r}")
+
+
+def notes_check(cases, topics, spec):
+    name = {t["key"]: t["name"] for t in topics}
+    quote = lambda c, i: {"text": c["q"] if i < 0 else c["pts"][i], "doc": name[c["t"]] + " notes", "sec": c["sec"] + (" › " + c["title"])}
+    real, possible, dropped = [], list(spec.get("possible", [])), list(spec.get("dropped", []))
+    for c in cases:
+        for w in c.pop("warn", []):
+            mv = spec.get("move", {}).get(c["id"])
+            if mv:
+                c.setdefault("gaps", []).append(w["text"])
+                if mv["to"] == "dropped":
+                    dropped.append({"was": w["text"], "reason": mv["reason"]})
+                else:
+                    possible.append({"text": w["text"], "why": mv["reason"], "quotes": []})
+                continue
+            qs = [quote(*find_point(cases, wh, pat)) for wh, pat in spec.get("quotes", {}).get(c["id"], [])]
+            real.append({"text": w["text"], "quotes": qs or [{"text": c["title"], "doc": name[c["t"]] + " notes", "sec": c["sec"]}], "_cards": {c["id"]}})
+    for r in spec.get("real", []):
+        hits = [find_point(cases, wh, pat) for wh, pat in r["find"]]
+        real.append({"text": r["text"], "quotes": [quote(c, i) for c, i in hits], "_cards": {c["id"] for c, _ in hits}})
+    by = {c["id"]: c for c in cases}
+    for r in real:
+        for cid in sorted(r.pop("_cards")):
+            by[cid].setdefault("warn", []).append({"text": r["text"], "quotes": r["quotes"]})
+    return {"real": real, "possible": possible, "dropped": dropped}
+
+
+def build_maps(cases, spec):
+    """Reaction maps -> FLOWS2 charts. Refuses any arrow whose boxes or reagents are not in its card."""
+    by = {c["id"]: c for c in cases}
+    out, bad, n = {}, [], 0
+    for m in spec["maps"]:
+        clusters = []
+        for cl in m["clusters"]:
+            tracks = []
+            for f, lab, to, cid, pi in cl["rx"]:
+                c = by.get(cid)
+                if not c or pi >= len(c["pts"]):
+                    bad.append(f"{m['id']}: no point {pi} in card {cid}")
+                    continue
+                txt = nrm(" ".join([c["sec"], c["mid"], c["title"]] + c["pts"]))
+                parts = [re.sub(r"^then\s+", "", x) for x in re.split(r",\s*|\s*\(|\)|\s+and\s+|\s+\+\s+|\s+in\s+", lab) if x and x.strip()]
+                parts += [x for x in re.split(r"\s+\+\s+", f) + re.split(r"\s+\+\s+", to) if x.strip()]
+                miss = [x for x in parts if nrm(x) not in txt]
+                if miss:
+                    bad.append(f"{m['id']}: {f} → {to} – not in {cid}: {miss}")
+                    continue
+                n += 1
+                node = lambda t, ty: {"id": f"{m['id']}-{n}{ty[0]}", "type": ty, "t": t, "cards": [cid]}
+                tracks.append({"steps": [node(f, "reactant"), {"link": lab, "how": c["pts"][pi]}, node(to, "product")]})
+            clusters.append({"title": cl["title"], "steps": [{"split": tracks}]})
+        out.setdefault(m["t"], []).append({"id": m["id"], "order": len(out.get(m["t"], [])), "level": 0, "kind": "reactions",
+                                           "title": m["title"], "clusters": clusters})
+    if bad:
+        raise SystemExit("reaction_maps.json refused:\n  " + "\n  ".join(bad))
+    return out, n
+
+
 def main():
     notes_dir, docs = sys.argv[1], sys.argv[2]
+    maps_dir = sys.argv[3] if len(sys.argv) > 3 else os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "maps")
+    load = lambda f: json.load(open(os.path.join(maps_dir, f), encoding="utf8")) if os.path.exists(os.path.join(maps_dir, f)) else {}
+    written, check_spec, map_spec = load("written.json"), load("notes_check.json"), load("reaction_maps.json")
     os.makedirs(os.path.join(docs, "data"), exist_ok=True)
-    topics, cases, sums, essays, real = [], [], {}, [], []
+    topics, cases, sums, essays, missing = [], [], {}, [], []
     for f in sorted(os.listdir(notes_dir)):
         if f.endswith(".notes"):
             spec = os.path.join(notes_dir, f)
-            t, cs, s, es = build_topic(spec, spec[:-6] + ".verify.json")
+            w = written.get(f[:-6], {})
+            t, cs, s, es = build_topic(spec, spec[:-6] + ".verify.json", w)
             topics.append(t); cases += cs; sums[t["key"]] = s; essays += es
-            for c in cs:
-                for w in c.get("warn", []):
-                    real.append({"text": w["text"], "quotes": [{"text": c["title"], "doc": t["name"] + " notes", "sec": c["sec"]}]})
+            missing += [f"{t['key']}: {x['name']}" for x in s["cases"] if not x["what"]]
+            if not w.get("overview"):
+                missing.append(f"{t['key']}: (overview)")
+    nc = notes_check(cases, topics, check_spec)
+    flows, nrx = build_maps(cases, map_spec) if map_spec else ({}, 0)
     with open(os.path.join(docs, "cases.js"), "w", encoding="utf8") as fh:
         fh.write("// Topic list for the H2 Chemistry Drill. Built by build_drill_data.py from the verified study notes.\n")
         fh.write(js("TOPICS", topics) + "window.CASES=window.CASES||[];\n")
     with open(os.path.join(docs, "data", "cards.js"), "w", encoding="utf8") as fh:
-        fh.write("// Cards built line by line from the verified notes. Only lines that passed the source check are points.\n")
+        fh.write("// Cards built line by line from the verified notes. Only lines that passed the source check are points.\n"
+                 "// `exp` is the one short line per section from written.json: written for the app, not from the lecture notes.\n")
         fh.write("window.CASES.push(..." + json.dumps(cases, ensure_ascii=False, separators=(",", ":")) + ");\n")
     with open(os.path.join(docs, "data", "summaries.js"), "w", encoding="utf8") as fh:
+        fh.write("// `overview` and each section's `what` are written for the app (not from the lecture notes); the rest is from the notes.\n")
         fh.write(js("SUMMARIES", sums))
     with open(os.path.join(docs, "data", "notes-check.js"), "w", encoding="utf8") as fh:
-        fh.write(js("NOTES_CHECK", {"real": real, "possible": [], "dropped": []}))
+        fh.write("// Where the notes disagree with themselves. Every quote is copied word for word from a card point.\n")
+        fh.write(js("NOTES_CHECK", nc))
+    with open(os.path.join(docs, "data", "maps.js"), "w", encoding="utf8") as fh:
+        fh.write("// Reaction maps. Box names and reagents were checked against the named card; each arrow's `how` is that card point word for word.\n"
+                 "// Map and stage titles are written for the app (not from the lecture notes).\n")
+        fh.write(js("FLOWS2", flows))
     with open(os.path.join(docs, "essays.js"), "w", encoding="utf8") as fh:
         fh.write("// Learning-outcome prompts for Apply mode, taken word for word from each lecture's learning outcomes.\n"
                  "// `use` lists cards that share key words with the outcome (matched automatically).\n")
         fh.write(js("ESSAYS", essays))
+    if missing:
+        print("no written line for:\n  " + "\n  ".join(missing))
     print(f"{len(topics)} topics, {len(cases)} cards ({sum(len(c['pts']) for c in cases)} points, "
+          f"{sum(1 for c in cases if c['qs'] == 'notes')} with questions from the notes, "
           f"{sum(1 for c in cases if 'clue' in c)} with Name-it clues), {len(essays)} outcome prompts, "
-          f"{len(real)} disagreements -> {docs}")
+          f"{len(nc['real'])} disagreements ({len(nc['possible'])} possible, {len(nc['dropped'])} dropped), "
+          f"{sum(len(v) for v in flows.values())} reaction maps ({nrx} reactions) -> {docs}")
 
 
 if __name__ == "__main__":

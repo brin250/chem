@@ -358,6 +358,9 @@ details.sumstats summary{cursor:pointer;margin:14px 0 4px}
 .note{border-radius:var(--r);padding:8px 12px;font-size:13.5px}
 .note.gap{border:1px solid var(--warn);background:var(--warn-soft)}
 .note.blank{border:1px dashed var(--muted);background:var(--paper)}
+.nfl{display:inline-block;margin-left:6px;padding:1px 7px;border:1px dashed var(--muted);border-radius:999px;font:600 11px/1.6 var(--body,inherit);color:var(--muted);letter-spacing:.01em;vertical-align:1px}
+.wrote{color:var(--muted);font-style:italic}
+.explain.mine{border-left-style:dashed;background:var(--paper)}
 @media (prefers-reduced-motion:no-preference){.sheet-in>*{animation:rise .2s ease both}@keyframes rise{from{opacity:.4;transform:translateY(4px)}to{opacity:1;transform:none}}}
 </style>
 </head>
@@ -376,7 +379,7 @@ details.sumstats summary{cursor:pointer;margin:14px 0 4px}
       <div id="sumchips" class="casegroup"></div>
     </div>
     <div class="card" id="mapcard" hidden>
-      <b>Flow charts to recall</b>
+      <b>Reaction maps to recall</b>
       <span class="hint" id="maptext"></span>
       <button class="btn wide" id="mapgo">Recall the next map</button>
     </div>
@@ -413,6 +416,7 @@ details.sumstats summary{cursor:pointer;margin:14px 0 4px}
       <button class="mode" data-mode="recall"><span class="ic">✎</span><span><b>Recall</b><span class="hint">See a section of your notes, write what you remember, mark it against the notes.</span></span><span class="go">Start</span></button>
       <button class="mode" data-mode="identify"><span class="ic">?</span><span><b>Name it</b><span class="hint">Read a point from your notes with its key words hidden and name the section.</span></span><span class="go">Start</span></button>
       
+      <button class="mode" data-mode="link"><span class="ic">⇢</span><span><b>Links</b><span class="hint">Recall the reactions (reagents and conditions) from the reaction maps you've studied, mixed across topics.</span></span><span class="go">Start</span></button>
       <button class="mode" data-mode="apply"><span class="ic">¶</span><span><b>Apply</b><span class="hint">Answer one of the lecture's learning outcomes, then check it against the sections that cover it.</span></span><span class="go">Start</span></button>
     </div>
 
@@ -509,6 +513,7 @@ details.sumstats summary{cursor:pointer;margin:14px 0 4px}
 <script src="data/cards.js"></script>
 <script src="data/summaries.js"></script>
 <script src="data/notes-check.js"></script>
+<script src="data/maps.js"></script>
 <script src="essays.js"></script>
 <script>
 (function(){
@@ -817,20 +822,20 @@ function openSummary(t){
   s.append(el("div",{class:"sum casegroup"},
     el("div",{class:"eyebrow",text:`${T.paper} · ${T.theme} · Summary`}), el("h2",{class:"qtitle",text:T.name}),
     S.question?el("div",{class:"qtext",style:"font-style:italic",text:S.question}):null,
-    (S.overview||[]).map(x=>el("p",{text:x})),
+    (S.overview||[]).length?el("div",{class:"explain mine"}, el("b",{text:"In short "}), el("span",{class:"nfl",text:"Not from your lecture notes"}), (S.overview||[]).map(x=>el("div",{text:x}))):null,
     (S.themes||[]).map(th=>el("div",{}, el("h3",{text:th.h}), el("ul",{}, th.pts.map(x=>el("li",{text:x}))))),
     el("h3",{text:`Sections (${(S.cases||[]).length})`}),
     (S.cases||[]).map(c=>{ const ids=keysOf(c.cards||[]);
       return el("div",{class:"sumcase"}, el("div",{}, el("b",{text:c.name}), el("span",{class:"hint",text:"  "+(c.when||"")})),
-        el("div",{text:c.what}), el("ul",{}, (c.facts||[]).map(x=>el("li",{text:x}))), c.why?el("div",{class:"why",text:c.why}):null,
+        c.what?el("div",{class:"wrote"}, c.what, el("span",{class:"nfl",text:"Not from your lecture notes"})):null, el("ul",{}, (c.facts||[]).map(x=>el("li",{text:x}))), c.why?el("div",{class:"why",text:c.why}):null,
         ids.length?el("div",{class:"row"},
           el("button",{class:"linkbtn",text:"Learn these cards",onclick:()=>startLearn({t,sec:c.name,cards:ids.map(id=>CASE[id])})}),
           el("button",{class:"linkbtn",text:"Test me",onclick:()=>{ round={mode:"recall",queue:shuffle(ids.map(id=>"recall:"+id)),i:0,results:[],requeued:new Set()}; showCard(); }})):null); }),
     statCount(t)?el("details",{class:"sumstats"}, el("summary",{}, el("h3",{style:"display:inline",text:`Key data (${statCount(t)})`})), statsEl(t)):null,
     (S.historians||[]).length?el("div",{}, el("h3",{text:"Historians"}), el("ul",{}, S.historians.map(h=>el("li",{}, el("b",{text:h.who+": "}), h.view)))):null,
     (S.exam||[]).length?el("div",{}, el("h3",{text:"Quick-revision checklist"}), el("ul",{}, S.exam.map(x=>el("li",{text:x})))):null,
-    el("div",{class:"srctag",text:`Assembled only from your ${T.src} notes: learning outcomes, section headings and checklist as written there.`})));
-  setActions(flowsOf(t).length?el("button",{class:"btn ghost",text:"Flow charts",onclick:()=>openFlowList(t)}):el("button",{class:"btn ghost",text:"Close",onclick:()=>$("#closesession").click()}),
+    el("div",{class:"srctag",text:`Assembled from your ${T.src} notes: learning outcomes, section headings and checklist as written there. Only the lines marked “Not from your lecture notes” were written for this app.`})));
+  setActions(flowsOf(t).length?el("button",{class:"btn ghost",text:"Reaction map",onclick:()=>openFlowList(t)}):el("button",{class:"btn ghost",text:"Close",onclick:()=>$("#closesession").click()}),
     el("button",{class:"btn",text:"Learn this topic",onclick:()=>{ const ns=sectionsOf(t).find(x=>x.cards.some(c=>!isLearned(c)))||sectionsOf(t)[0]; startLearn(ns); }}));
 }
 
@@ -903,7 +908,7 @@ function warnBox(w){ return el("div",{class:"tip"}, el("b",{text:"Check this: "}
   (w.quotes||[]).length?el("ul",{class:"wq"}, w.quotes.map(q=>el("li",{}, el("q",{text:q.text}), el("span",{class:"wsrc",text:` ${q.doc} · ${q.sec}`})))):null); }
 function explain(c){ return el("div",{style:"display:contents"}, (c.warn||[]).map(warnBox),
   (c.gaps||[]).map(g=>el("div",{class:"note gap"}, el("b",{text:"⚠ Not reproduced from the source: "}), g)),
-  (c.blanks||[]).map(b=>el("div",{class:"note blank"}, el("b",{text:"✎ Left blank in your notes: "}), b)), c.exp?el("div",{class:"explain"}, el("b",{text:"Explanation"}), c.exp):null); }
+  (c.blanks||[]).map(b=>el("div",{class:"note blank"}, el("b",{text:"✎ Left blank in your notes: "}), b)), c.exp?el("div",{class:"explain mine"}, el("b",{text:"About this section "}), el("span",{class:"nfl",text:"Not from your lecture notes"}), el("div",{text:c.exp})):null); }
 function showCard(){
   progress();
   if(round.mode==="learn") return round.i>=round.queue.length ? learnSummary() : learnCard(CASE[round.queue[round.i]]);
@@ -1079,7 +1084,7 @@ function renderLearn(){
       el("div",{class:"row",style:"grid-column:1/-1;gap:14px"},
         (window.SUMMARIES||{})[t.key]?el("button",{class:"linkbtn",style:"font-size:14px",text:"Read summary →",onclick:e=>{ e.preventDefault(); e.stopPropagation(); openSummary(t.key); }}):null,
         statCount(t.key)?el("button",{class:"linkbtn",style:"font-size:14px",text:`Key data (${statCount(t.key)}) →`,onclick:e=>{ e.preventDefault(); e.stopPropagation(); openStats(t.key); }}):null,
-        flowsOf(t.key).length?el("button",{class:"linkbtn",style:"font-size:14px",text:`Flow charts (${flowsOf(t.key).length}) →`,onclick:e=>{ e.preventDefault(); e.stopPropagation(); openFlowList(t.key); }}):null),
+        flowsOf(t.key).length?el("button",{class:"linkbtn",style:"font-size:14px",text:`Reaction map${flowsOf(t.key).length>1?"s":""} →`,onclick:e=>{ e.preventDefault(); e.stopPropagation(); openFlowList(t.key); }}):null),
       el("div",{class:"bar",style:"grid-column:1/-1"}, el("i",{style:`width:${100*got/all.length}%;background:var(--blue)`}))),
       (window.SUMMARIES||{})[t.key]?el("button",{class:"btn ghost",style:"margin-top:10px;width:100%",text:"Read the topic summary",onclick:()=>openSummary(t.key)}):null,
       el("div",{style:"margin-top:8px"}, secs.map(s=>{ const k=s.cards.filter(isLearned).length, done=k===s.cards.length;
@@ -1207,7 +1212,7 @@ if("serviceWorker" in navigator && location.protocol.startsWith("http")){
   navigator.serviceWorker.register("sw.js").then(r=>r.update()).catch(()=>{});
 }
 
-$("#foot").textContent=`App version 1 (based on Case Drill v44) · ${CASES.length} cards (${CASES.reduce((n,c)=>n+c.pts.length,0)} points) and ${ESSAYS.length} learning-outcome prompts from all ${TOPICS.length} sets of your lecture notes. Every point passed an automatic check against the lecture text and each card says which lines it came from. Drawings and garbled text are marked ⚠ instead of being reconstructed; blanks in your notes are marked ✎ and left unanswered.`;
+$("#foot").textContent=`App version 2 (based on Case Drill v44) · ${CASES.length} cards (${CASES.reduce((n,c)=>n+c.pts.length,0)} points; ${CASES.filter(c=>c.qs==="notes").length} with questions taken from your notes), ${Object.values(window.FLOWS2||{}).reduce((n,a)=>n+a.length,0)} reaction maps and ${ESSAYS.length} learning-outcome prompts from all ${TOPICS.length} sets of your lecture notes. Every point passed an automatic check against the lecture text and each card says which lines it came from. Drawings and garbled text are marked ⚠ instead of being reconstructed; blanks in your notes are marked ✎ and left unanswered. The only text not from your notes is labelled “Not from your lecture notes”.`;
 window.APP={el,$,CASE,TOPIC,TOPICS,startLearn,setActions,openSession,stageClear,save,grade,intervalDays,openSummary,state:()=>state,
   touchDay:()=>{ const d=dayKey(); state.days[d]=(state.days[d]||0)+1; }};
 /* ---------- inside Claude (artifact): sync through the Claude account instead of GitHub ---------- */
@@ -1233,5 +1238,7 @@ renderToday();
 doSync();
 })();
 </script>
+<script src="flow2.js"></script>
+<script>if(window.FLOW2){ /* re-render Today now the flow engine has loaded */ document.querySelector('[data-view="today"]')&&document.querySelector('[data-view="today"]').click(); }</script>
 </body>
 </html>

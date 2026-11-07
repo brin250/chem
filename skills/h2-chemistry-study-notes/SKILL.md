@@ -110,14 +110,28 @@ grey ✎ callouts, grey `[src L…]` tags on headings.
 
 ## Drill app (active recall)
 
-After every spec passes, build the study app's card bank and publish it:
+The app in `docs/` is a port of the H2 History Case Drill (v44): Today / Learn / Progress / Notes tabs,
+Learn-first, spaced review, Recall, Name it, Apply (learning outcomes), Links, topic summaries, key data,
+reaction maps (`docs/flow2.js`) and the "where your notes disagree" check. After every spec passes:
 
 ```bash
-python3 -I scripts/build_app_data.py notes/ output/app/cards.js
-cp app/index.html output/app/index.html
+python3 -I scripts/build_drill_data.py notes docs            # reads maps/ next to scripts/ by default
+python3 -I scripts/make_artifact.py docs/index.html output/app44/index.html
 ```
 
-Publish `output/app/index.html` as an Artifact with `files: {"cards.js": "output/app/cards.js"}` and
-`capabilities: {db: {}, user: {}}` (per-viewer progress). The builder takes only lines the verifier
-marked PASS/WARN, keeps each point's source-line citation, shows ⚠ gaps and ✎ blanks as notes rather
-than answers, and refuses any spec whose verify report is missing, failing or out of date.
+Publish `output/app44/index.html` as an Artifact with `files` for `cases.js`, `essays.js`, `flow2.js` and
+`data/{cards,summaries,notes-check,maps}.js`, and `capabilities: {db: {}, user: {}}` (per-viewer progress).
+
+Hallucination guards in the builder:
+- refuses any spec whose verify report is missing, failing or out of date; only PASS/WARN lines become points;
+  ⚠ gaps and ✎ blanks are notes, never answers;
+- questions are either from the notes (worked examples that read as a question, `Q: … A: …` lines) or a fixed
+  template; notes questions are labelled "Question from your notes";
+- `maps/reaction_maps.json`: every arrow names a card and point; the build fails unless both box names and
+  every reagent appear in that card, and the arrow's explanation is that point word for word;
+- `maps/notes_check.json`: every quote is found by pattern in the card points and copied, never typed;
+  the build fails if a pattern finds nothing;
+- `maps/written.json` is the only free text (one line per lecture and per section); the app labels all of it,
+  and map titles, "Not from your lecture notes".
+
+`maps/` quotes the lectures, so like `notes/` and `docs/data/` it is git-ignored in this public repo.

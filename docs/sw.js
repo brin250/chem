@@ -1,6 +1,6 @@
 // Offline support: cache the app shell, serve it cache-first, refresh in the background.
-const VERSION = "chem-drill-v1";
-const SHELL = ["./", "index.html", "cases.js", "essays.js", "data/cards.js", "data/summaries.js", "data/notes-check.js",
+const VERSION = "chem-drill-v2";
+const SHELL = ["./", "index.html", "cases.js", "essays.js", "data/cards.js", "data/summaries.js", "data/notes-check.js", "data/maps.js", "flow2.js",
   "manifest.webmanifest", "icons/icon-192.png", "icons/icon-512.png", "icons/apple-touch-icon.png"];
 
 self.addEventListener("install", e => {
