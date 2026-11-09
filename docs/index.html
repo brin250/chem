@@ -358,6 +358,9 @@ details.sumstats summary{cursor:pointer;margin:14px 0 4px}
 .note{border-radius:var(--r);padding:8px 12px;font-size:13.5px}
 .note.gap{border:1px solid var(--warn);background:var(--warn-soft)}
 .note.blank{border:1px dashed var(--muted);background:var(--paper)}
+.note.sugg{border:1px dashed var(--blue);background:var(--paper)}
+.note.sugg summary{cursor:pointer;list-style-position:inside}
+.note.sugg p,.note.sugg li{color:var(--ink)}
 .nfl{display:inline-block;margin-left:6px;padding:1px 7px;border:1px dashed var(--muted);border-radius:999px;font:600 11px/1.6 var(--body,inherit);color:var(--muted);letter-spacing:.01em;vertical-align:1px}
 .wrote{color:var(--muted);font-style:italic}
 .explain.mine{border-left-style:dashed;background:var(--paper)}
@@ -908,7 +911,11 @@ function warnBox(w){ return el("div",{class:"tip"}, el("b",{text:"Check this: "}
   (w.quotes||[]).length?el("ul",{class:"wq"}, w.quotes.map(q=>el("li",{}, el("q",{text:q.text}), el("span",{class:"wsrc",text:` ${q.doc} · ${q.sec}`})))):null); }
 function explain(c){ return el("div",{style:"display:contents"}, (c.warn||[]).map(warnBox),
   (c.gaps||[]).map(g=>el("div",{class:"note gap"}, el("b",{text:"⚠ Not reproduced from the source: "}), g)),
-  (c.blanks||[]).map(b=>el("div",{class:"note blank"}, el("b",{text:"✎ Left blank in your notes: "}), b)), c.exp?el("div",{class:"explain mine"}, el("b",{text:"About this section "}), el("span",{class:"nfl",text:"Not from your lecture notes"}), el("div",{text:c.exp})):null); }
+  (c.blanks||[]).map(b=>el("div",{class:"note blank"}, el("b",{text:"✎ Left blank in your notes: "}), b)),
+  (c.sugg||[]).length?el("details",{class:"note sugg"}, el("summary",{}, el("b",{text:"Suggested answer"}), el("span",{class:"nfl",text:"Not from your lecture notes"})),
+    el("div",{class:"hint",text:"Written for this app and worked out from the card's own data where possible. Check it with your teacher."}),
+    (c.sugg.length>1?el("ul",{},c.sugg.map(x=>el("li",{text:x}))):el("p",{style:"margin:6px 0 0",text:c.sugg[0]}))):null,
+  c.nosugg?el("div",{class:"note blank"}, el("b",{text:"No suggested answer: "}), c.nosugg):null, c.exp?el("div",{class:"explain mine"}, el("b",{text:"About this section "}), el("span",{class:"nfl",text:"Not from your lecture notes"}), el("div",{text:c.exp})):null); }
 function showCard(){
   progress();
   if(round.mode==="learn") return round.i>=round.queue.length ? learnSummary() : learnCard(CASE[round.queue[round.i]]);
@@ -1212,7 +1219,7 @@ if("serviceWorker" in navigator && location.protocol.startsWith("http")){
   navigator.serviceWorker.register("sw.js").then(r=>r.update()).catch(()=>{});
 }
 
-$("#foot").textContent=`App version 2 (based on Case Drill v44) · ${CASES.length} cards (${CASES.reduce((n,c)=>n+c.pts.length,0)} points; ${CASES.filter(c=>c.qs==="notes").length} with questions taken from your notes), ${Object.values(window.FLOWS2||{}).reduce((n,a)=>n+a.length,0)} reaction maps and ${ESSAYS.length} learning-outcome prompts from all ${TOPICS.length} sets of your lecture notes. Every point passed an automatic check against the lecture text and each card says which lines it came from. Drawings and garbled text are marked ⚠ instead of being reconstructed; blanks in your notes are marked ✎ and left unanswered. The only text not from your notes is labelled “Not from your lecture notes”.`;
+$("#foot").textContent=`App version 3 (based on Case Drill v44) · ${CASES.length} cards (${CASES.reduce((n,c)=>n+c.pts.length,0)} points; ${CASES.filter(c=>c.qs==="notes").length} with questions taken from your notes), ${Object.values(window.FLOWS2||{}).reduce((n,a)=>n+a.length,0)} reaction maps and ${ESSAYS.length} learning-outcome prompts from all ${TOPICS.length} sets of your lecture notes. Every point passed an automatic check against the lecture text and each card says which lines it came from. Drawings and garbled text are marked ⚠ instead of being reconstructed; blanks in your notes are marked ✎ and left unanswered. The only text not from your notes, including suggested answers for the blanks (${CASES.filter(c=>c.sugg).length} cards), is labelled “Not from your lecture notes”.`;
 window.APP={el,$,CASE,TOPIC,TOPICS,startLearn,setActions,openSession,stageClear,save,grade,intervalDays,openSummary,state:()=>state,
   touchDay:()=>{ const d=dayKey(); state.days[d]=(state.days[d]||0)+1; }};
 /* ---------- inside Claude (artifact): sync through the Claude account instead of GitHub ---------- */

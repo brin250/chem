@@ -10,6 +10,9 @@ Writes <docs_dir>/cases.js, <docs_dir>/essays.js and <docs_dir>/data/*.js.
                     The app labels every one "Written for this app – not from your lecture notes".
   notes_check.json  where the notes disagree with themselves; quotes are found by pattern
                     in the card points and copied word for word (build fails if one is missing).
+  answers.json      suggested answers for blanks in the notes, written for the app and labelled
+                    as not from the notes; every card with a blank must be answered or listed
+                    under "cannot" (blank needs a drawing only in the PDF).
   reaction_maps.json reaction flow charts; every arrow names a card and point, and the build
                     fails unless both box names and every reagent occur in that card.
 
@@ -361,11 +364,30 @@ def build_maps(cases, spec):
     return out, n
 
 
+def attach_answers(cases, spec):
+    """Suggested answers (written for the app) for cards whose notes have blanks."""
+    by = {c["id"]: c for c in cases}
+    A, cannot = spec.get("answers", {}), spec.get("cannot", {})
+    bad = [k for k in list(A) + list(cannot) if k not in by]
+    if bad:
+        raise SystemExit("answers.json names cards that do not exist: " + ", ".join(bad))
+    blank = lambda c: c.get("blanks") or any("[left blank]" in p or "[blank]" in p or "____" in p for p in c["pts"])
+    missing = [c["id"] for c in cases if blank(c) and c["id"] not in A and c["id"] not in cannot]
+    if missing:
+        raise SystemExit("answers.json: no answer or 'cannot' entry for " + ", ".join(missing))
+    for k, v in A.items():
+        by[k]["sugg"] = v
+    for k, v in cannot.items():
+        by[k]["nosugg"] = v
+    return sum(len(v) for v in A.values())
+
+
 def main():
     notes_dir, docs = sys.argv[1], sys.argv[2]
     maps_dir = sys.argv[3] if len(sys.argv) > 3 else os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "maps")
     load = lambda f: json.load(open(os.path.join(maps_dir, f), encoding="utf8")) if os.path.exists(os.path.join(maps_dir, f)) else {}
     written, check_spec, map_spec = load("written.json"), load("notes_check.json"), load("reaction_maps.json")
+    ans_spec = load("answers.json")
     os.makedirs(os.path.join(docs, "data"), exist_ok=True)
     topics, cases, sums, essays, missing = [], [], {}, [], []
     for f in sorted(os.listdir(notes_dir)):
@@ -378,6 +400,7 @@ def main():
             if not w.get("overview"):
                 missing.append(f"{t['key']}: (overview)")
     nc = notes_check(cases, topics, check_spec)
+    nans = attach_answers(cases, ans_spec) if ans_spec else 0
     flows, nrx = build_maps(cases, map_spec) if map_spec else ({}, 0)
     with open(os.path.join(docs, "cases.js"), "w", encoding="utf8") as fh:
         fh.write("// Topic list for the H2 Chemistry Drill. Built by build_drill_data.py from the verified study notes.\n")
@@ -406,7 +429,7 @@ def main():
           f"{sum(1 for c in cases if c['qs'] == 'notes')} with questions from the notes, "
           f"{sum(1 for c in cases if 'clue' in c)} with Name-it clues), {len(essays)} outcome prompts, "
           f"{len(nc['real'])} disagreements ({len(nc['possible'])} possible, {len(nc['dropped'])} dropped), "
-          f"{sum(len(v) for v in flows.values())} reaction maps ({nrx} reactions) -> {docs}")
+          f"{sum(len(v) for v in flows.values())} reaction maps ({nrx} reactions), {nans} suggested answers for blanks -> {docs}")
 
 
 if __name__ == "__main__":
