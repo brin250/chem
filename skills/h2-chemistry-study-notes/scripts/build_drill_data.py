@@ -364,6 +364,37 @@ def build_maps(cases, spec):
     return out, n
 
 
+# A card point is a reaction line if a formula, state symbol or compound name comes before an arrow.
+RX_LEFT = re.compile(r"[A-Z][a-z]?[₀-₉]|\((?:aq|g|s|l)\)|[⁺⁻]|\[O\]|\[H\]|\b\w+(?:ane|ene|yne|ol|al|one|oic acid|amine|amide|ate|ide|benzene|ester|nitrile)\b")
+RX_NOT = re.compile(r"energy →|Energy →|\d → \d|crowded|^\s*\d+ →")
+RX_HIDE = re.compile(r"((?:⎯)?→\s*)(.+?)(?=\s*(?:;|\s·\s|\.\s+[A-Z(]|\.$|$|(?:⎯)?→|:\s|\s–\s|"
+                     r",\s*(?:ΔH|E⦵|Ecell|however|which|where|rate|because|since|K[cₚa]?\b)|\s(?:is|are|because|since)\s))")
+
+
+def reactions(cases):
+    """Every reaction line in the notes, with what follows each arrow hidden. The parts join back to
+    the card point exactly, so the answer shown is always the line from the notes, word for word."""
+    out = []
+    for c in cases:
+        if c["id"].rsplit("-", 1)[-1].startswith("q"):
+            continue
+        for i, p in enumerate(c["pts"]):
+            if "→" not in p or "[left blank]" in p or RX_NOT.search(p) or not RX_LEFT.search(p.split("→")[0][-80:]):
+                continue
+            parts, last = [], 0
+            for m in RX_HIDE.finditer(p):
+                parts.append([p[last:m.start(2)], 0])
+                parts.append([m.group(2), 1])
+                last = m.end(2)
+            parts.append([p[last:], 0])
+            # A hidden part that is only a drawing ("(drawn)") cannot be recalled in words: leave it shown.
+            parts = [[t, 0 if h and "drawn" in t else h] for t, h in parts if t]
+            assert "".join(x[0] for x in parts) == p
+            if any(h for _, h in parts):
+                out.append({"id": f"{c['id']}.{i}", "t": c["t"], "cid": c["id"], "parts": parts})
+    return out
+
+
 def attach_answers(cases, spec):
     """Suggested answers (written for the app) for cards whose notes have blanks."""
     by = {c["id"]: c for c in cases}
@@ -402,6 +433,7 @@ def main():
     nc = notes_check(cases, topics, check_spec)
     nans = attach_answers(cases, ans_spec) if ans_spec else 0
     flows, nrx = build_maps(cases, map_spec) if map_spec else ({}, 0)
+    rxns = reactions(cases)
     with open(os.path.join(docs, "cases.js"), "w", encoding="utf8") as fh:
         fh.write("// Topic list for the H2 Chemistry Drill. Built by build_drill_data.py from the verified study notes.\n")
         fh.write(js("TOPICS", topics) + "window.CASES=window.CASES||[];\n")
@@ -419,6 +451,10 @@ def main():
         fh.write("// Reaction maps. Box names and reagents were checked against the named card; each arrow's `how` is that card point word for word.\n"
                  "// Map and stage titles are written for the app (not from the lecture notes).\n")
         fh.write(js("FLOWS2", flows))
+    with open(os.path.join(docs, "data", "reactions.js"), "w", encoding="utf8") as fh:
+        fh.write("// Every reaction line in the notes for Reactions mode. Parts flagged 1 are hidden in the question;\n"
+                 "// joined together the parts are the card point word for word.\n")
+        fh.write(js("RXNS", rxns))
     with open(os.path.join(docs, "essays.js"), "w", encoding="utf8") as fh:
         fh.write("// Learning-outcome prompts for Apply mode, taken word for word from each lecture's learning outcomes.\n"
                  "// `use` lists cards that share key words with the outcome (matched automatically).\n")
@@ -429,7 +465,7 @@ def main():
           f"{sum(1 for c in cases if c['qs'] == 'notes')} with questions from the notes, "
           f"{sum(1 for c in cases if 'clue' in c)} with Name-it clues), {len(essays)} outcome prompts, "
           f"{len(nc['real'])} disagreements ({len(nc['possible'])} possible, {len(nc['dropped'])} dropped), "
-          f"{sum(len(v) for v in flows.values())} reaction maps ({nrx} reactions), {nans} suggested answers for blanks -> {docs}")
+          f"{sum(len(v) for v in flows.values())} reaction maps ({nrx} reactions), {nans} suggested answers for blanks, {len(rxns)} reaction lines -> {docs}")
 
 
 if __name__ == "__main__":

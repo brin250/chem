@@ -358,6 +358,9 @@ details.sumstats summary{cursor:pointer;margin:14px 0 4px}
 .note{border-radius:var(--r);padding:8px 12px;font-size:13.5px}
 .note.gap{border:1px solid var(--warn);background:var(--warn-soft)}
 .note.blank{border:1px dashed var(--muted);background:var(--paper)}
+.rxq{font-size:18px;line-height:1.7;margin:4px 0 10px}
+.rxb{display:inline-block;min-width:2em;padding:0 8px;margin:0 2px;border:1.5px dashed var(--blue);border-radius:6px;color:var(--blue);font-weight:700;text-align:center;line-height:1.5}
+.rxa{background:var(--blue-soft);color:inherit;border-radius:4px;padding:0 3px;font-weight:600}
 .note.sugg{border:1px dashed var(--blue);background:var(--paper)}
 .note.sugg summary{cursor:pointer;list-style-position:inside}
 .note.sugg p,.note.sugg li{color:var(--ink)}
@@ -420,6 +423,7 @@ details.sumstats summary{cursor:pointer;margin:14px 0 4px}
       <button class="mode" data-mode="identify"><span class="ic">?</span><span><b>Name it</b><span class="hint">Read a point from your notes with its key words hidden and name the section.</span></span><span class="go">Start</span></button>
       
       <button class="mode" data-mode="link"><span class="ic">⇢</span><span><b>Links</b><span class="hint">Recall the reactions (reagents and conditions) from the reaction maps you've studied, mixed across topics.</span></span><span class="go">Start</span></button>
+      <button class="mode" data-mode="rxn"><span class="ic">→</span><span><b>Reactions</b><span class="hint" id="rxnhint">Every reaction in your notes, one by one. Recall what is hidden after each arrow, then check against the exact line.</span></span><span class="go">Start</span></button>
       <button class="mode" data-mode="apply"><span class="ic">¶</span><span><b>Apply</b><span class="hint">Answer one of the lecture's learning outcomes, then check it against the sections that cover it.</span></span><span class="go">Start</span></button>
     </div>
 
@@ -517,6 +521,7 @@ details.sumstats summary{cursor:pointer;margin:14px 0 4px}
 <script src="data/summaries.js"></script>
 <script src="data/notes-check.js"></script>
 <script src="data/maps.js"></script>
+<script src="data/reactions.js"></script>
 <script src="essays.js"></script>
 <script>
 (function(){
@@ -550,6 +555,7 @@ function itemsForMode(mode){
   const on = new Set(state.settings.topics);
   if(mode==="apply") return ESSAYS.filter(e=>on.has(e.t)).map(e=>"essay:"+e.id);
   if(mode==="link") return window.FLOW2?FLOW2.linkKeys(on):[];
+  if(mode==="rxn") return (window.RXNS||[]).filter(r=>on.has(r.t)).map(r=>"rxn:"+r.id);
   return CASES.filter(c=>on.has(c.t)&&(mode!=="identify"||c.clue)&&isLearned(c)).map(c=>mode+":"+c.id);
 }
 // Sections of a topic, in the order of the notes.
@@ -641,7 +647,7 @@ document.querySelectorAll(".mode").forEach(b=>b.onclick=()=>startRound(b.dataset
 /* ---------- session ---------- */
 let round=null;
 function startRound(mode, keys){
-  const q = keys || buildQueue(itemsForMode(mode), state.settings.size);
+  const q = keys || buildQueue(itemsForMode(mode), mode==="rxn"?Infinity:state.settings.size);
   if(!q.length) return;
   round={mode,queue:q,i:0,results:[],requeued:new Set()};
   $("#session").hidden=false; document.body.style.overflow="hidden";
@@ -924,7 +930,22 @@ function showCard(){
   if(mode==="recall") return recallCard(key,CASE[id]);
   if(mode==="identify") return identifyCard(key,CASE[id]);
   if(mode==="link") return FLOW2.linkCard(key,next);
+  if(mode==="rxn") return rxnCard(key,RXN[id]);
   return applyCard(key,ESSAY[id]);
+}
+/* ---------- reactions: every reaction line in the notes, with what follows each arrow hidden ---------- */
+const RXN=Object.fromEntries((window.RXNS||[]).map(r=>[r.id,r]));
+function rxnCard(key,r){
+  if(!r) return next(key,1);
+  const c=CASE[r.cid], T=TOPIC[r.t], s=stageClear(), nh=r.parts.filter(x=>x[1]).length;
+  const meta=()=>el("div",{class:"meta"}, el("span",{class:"eyebrow",text:`${T.name} · ${c.title}`}), el("span",{class:"box",text:"Reaction"}));
+  const ta=el("textarea",{placeholder:nh>1?`Write what goes in each of the ${nh} gaps, in order`:"Write what goes in the gap","aria-label":"Your answer"}); ta.style.minHeight="16vh";
+  s.append(meta(), el("p",{class:"rxq"}, r.parts.map(([t,h],i)=>h?el("span",{class:"rxb",text:nh>1?String(r.parts.slice(0,i+1).filter(x=>x[1]).length):"?"}):t)), ta);
+  const reveal=()=>{ const v=ta.value.trim(), s2=stageClear();
+    s2.append(meta(), v?el("div",{class:"your",text:v}):null,
+      el("div",{class:"explain"}, el("b",{text:"Your notes"}), el("p",{class:"rxq",style:"margin:6px 0 0"}, r.parts.map(([t,h])=>h?el("mark",{class:"rxa",text:t}):t))), srcTag(c));
+    setActions(...["Missed it","Partly","Got it"].map((x,i)=>el("button",{class:i===2?"btn":"btn ghost",text:x,onclick:()=>next(key,[0,0.6,1][i])}))); };
+  setActions(el("button",{class:"btn ghost",text:"I don't know",onclick:reveal}), el("button",{class:"btn",text:"Check",onclick:reveal}));
 }
 function next(key, frac){
   grade(key,frac); round.results.push({key,frac});
@@ -1000,13 +1021,13 @@ function showSummary(){
   const s=stageClear(), seen=new Set(), firsts=[];
   for(const r of round.results) if(!seen.has(r.key)){ seen.add(r.key); firsts.push(r); }
   const avg=firsts.length?Math.round(100*firsts.reduce((a,r)=>a+r.frac,0)/firsts.length):0;
-  const weak=firsts.filter(r=>r.frac<0.5).map(r=>{ const [m,id]=r.key.split(":"); return m==="essay"?ESSAY[id].q:CASE[id].title; });
+  const weak=firsts.filter(r=>r.frac<0.5).map(r=>{ const [m,id]=r.key.split(":"); return m==="essay"?ESSAY[id].q:m==="rxn"?(RXN[id]?`${CASE[RXN[id].cid].title} – ${RXN[id].parts.filter(x=>!x[1]).map(x=>x[0]).join("…").slice(0,70)}`:id):m==="link"?"Reaction-map link":(CASE[id]||{title:id}).title; });
   $("#pcount").textContent="Done";
   s.append(el("div",{class:"done"}, el("div",{class:"eyebrow",text:"Round complete"}), el("div",{class:"big",text:avg+"%"}),
     el("div",{class:"hint",text:`Average first-attempt mark across ${firsts.length} cards · ${streak()}-day streak`}),
     weak.length?el("div",{style:"text-align:left"}, el("div",{class:"eyebrow",text:"Revise these first"}), el("ul",{},weak.map(w=>el("li",{text:w})))):el("div",{class:"hint",text:"Nothing below half marks this round."})));
   const mode=round.mode;
-  setActions(el("button",{class:"btn ghost",text:"Finish",onclick:()=>$("#closesession").click()}), el("button",{class:"btn",text:"Next round",onclick:()=>{ round=null; history.replaceState({session:true},""); const q=buildQueue(itemsForMode(mode),state.settings.size); if(!q.length) return $("#closesession").click(); round={mode,queue:q,i:0,results:[],requeued:new Set()}; showCard(); }}));
+  setActions(el("button",{class:"btn ghost",text:"Finish",onclick:()=>$("#closesession").click()}), el("button",{class:"btn",text:"Next round",onclick:()=>{ round=null; history.replaceState({session:true},""); const q=buildQueue(itemsForMode(mode),mode==="rxn"?Infinity:state.settings.size); if(!q.length) return $("#closesession").click(); round={mode,queue:q,i:0,results:[],requeued:new Set()}; showCard(); }}));
 }
 
 /* ---------- cloud sync (private GitHub gist) ---------- */
@@ -1219,7 +1240,8 @@ if("serviceWorker" in navigator && location.protocol.startsWith("http")){
   navigator.serviceWorker.register("sw.js").then(r=>r.update()).catch(()=>{});
 }
 
-$("#foot").textContent=`App version 3 (based on Case Drill v44) · ${CASES.length} cards (${CASES.reduce((n,c)=>n+c.pts.length,0)} points; ${CASES.filter(c=>c.qs==="notes").length} with questions taken from your notes), ${Object.values(window.FLOWS2||{}).reduce((n,a)=>n+a.length,0)} reaction maps and ${ESSAYS.length} learning-outcome prompts from all ${TOPICS.length} sets of your lecture notes. Every point passed an automatic check against the lecture text and each card says which lines it came from. Drawings and garbled text are marked ⚠ instead of being reconstructed; blanks in your notes are marked ✎ and left unanswered. The only text not from your notes, including suggested answers for the blanks (${CASES.filter(c=>c.sugg).length} cards), is labelled “Not from your lecture notes”.`;
+$("#foot").textContent=`App version 4 (based on Case Drill v44) · ${CASES.length} cards (${CASES.reduce((n,c)=>n+c.pts.length,0)} points; ${CASES.filter(c=>c.qs==="notes").length} with questions taken from your notes), ${Object.values(window.FLOWS2||{}).reduce((n,a)=>n+a.length,0)} reaction maps and ${ESSAYS.length} learning-outcome prompts from all ${TOPICS.length} sets of your lecture notes. Every point passed an automatic check against the lecture text and each card says which lines it came from. Drawings and garbled text are marked ⚠ instead of being reconstructed; blanks in your notes are marked ✎ and left unanswered. The only text not from your notes, including suggested answers for the blanks (${CASES.filter(c=>c.sugg).length} cards), is labelled “Not from your lecture notes”.`;
+if($("#rxnhint")) $("#rxnhint").textContent=`All ${(window.RXNS||[]).length} reactions in your notes, one by one (the whole set each round; close any time and carry on later). Recall what is hidden after each arrow, then check against the exact line.`;
 window.APP={el,$,CASE,TOPIC,TOPICS,startLearn,setActions,openSession,stageClear,save,grade,intervalDays,openSummary,state:()=>state,
   touchDay:()=>{ const d=dayKey(); state.days[d]=(state.days[d]||0)+1; }};
 /* ---------- inside Claude (artifact): sync through the Claude account instead of GitHub ---------- */
